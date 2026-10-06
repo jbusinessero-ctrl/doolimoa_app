@@ -3,6 +3,8 @@ package com.doolimoa.app;
 import android.app.Activity;
 import android.graphics.Bitmap;
 import android.os.Bundle;
+import android.os.Build;
+import android.view.WindowInsets;
 import android.view.View;
 import android.webkit.CookieManager;
 import android.webkit.WebChromeClient;
@@ -10,6 +12,8 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.window.OnBackInvokedCallback;
+import android.window.OnBackInvokedDispatcher;
 import android.widget.ProgressBar;
 import android.widget.FrameLayout;
 import android.widget.TextView;
@@ -20,6 +24,7 @@ public class MainActivity extends Activity {
     private static final String HOME_URL = "file:///android_asset/index.html";
     private WebView webView;
     private View offlineView;
+    private OnBackInvokedCallback backInvokedCallback;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,6 +55,16 @@ public class MainActivity extends Activity {
         root.addView(offline, new FrameLayout.LayoutParams(-1, -1));
         offlineView = offline;
         setContentView(root);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            getWindow().setDecorFitsSystemWindows(false);
+            root.setOnApplyWindowInsetsListener((view, insets) -> {
+                android.graphics.Insets bars = insets.getInsets(
+                        WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());
+                view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+                return insets;
+            });
+        }
 
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
@@ -85,6 +100,12 @@ public class MainActivity extends Activity {
             }
         });
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            backInvokedCallback = this::navigateBack;
+            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                    OnBackInvokedDispatcher.PRIORITY_DEFAULT, backInvokedCallback);
+        }
+
         if (savedInstanceState == null) webView.loadUrl(HOME_URL);
         else webView.restoreState(savedInstanceState);
     }
@@ -99,11 +120,19 @@ public class MainActivity extends Activity {
     }
 
     @Override public void onBackPressed() {
-        if (webView != null && webView.canGoBack()) webView.goBack();
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) navigateBack();
         else super.onBackPressed();
     }
 
+    private void navigateBack() {
+        if (webView != null && webView.canGoBack()) webView.goBack();
+        else finish();
+    }
+
     @Override protected void onDestroy() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && backInvokedCallback != null) {
+            getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(backInvokedCallback);
+        }
         if (webView != null) {
             webView.stopLoading();
             webView.destroy();
