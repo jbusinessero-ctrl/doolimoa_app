@@ -1,0 +1,13 @@
+.DS_Store
+.idea/
+
+# Android and Gradle generated files
+android/.gradle/
+android/build/
+android/app/build/
+android/app/release/
+android/local.properties
+
+# IDE and local machine files
+*.iml
+.vscode/
