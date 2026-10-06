@@ -35,11 +35,22 @@
         .onboarding-backdrop { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 20px; background: linear-gradient(135deg, #fff1f2 0%, #f5f3ff 55%, #eff6ff 100%); }
         .onboarding-card { width: min(100%, 440px); padding: 28px; border: 1px solid rgba(255,255,255,.9); border-radius: 28px; background: rgba(255,255,255,.88); box-shadow: 0 24px 70px rgba(30,41,59,.14); }
         .onboarding-step[hidden] { display: none !important; }
+        .header-title { display: flex; flex-direction: column; line-height: 1.15; white-space: nowrap; }
+        .header-title-names { max-width: min(42vw, 360px); overflow: hidden; text-overflow: ellipsis; }
+        .header-code-pill { flex: 0 0 auto; }
+        .header-code-actions { display: flex; align-items: center; gap: 8px; }
+        .header-room-change { white-space: nowrap; word-break: keep-all; flex: 0 0 auto; }
+        .transaction-card-list { display: none; }
+        .transaction-mobile-card { min-width: 0; }
         @media (max-width: 639px) {
             body { padding-bottom: 88px; }
-            header .header-inner { min-height: 72px; height: auto; padding-top: 10px; padding-bottom: 10px; gap: 8px; }
-            #headerTitle { font-size: 14px; }
+            header .header-inner { min-height: 72px; height: auto; padding: 9px 12px; gap: 8px; }
+            .header-title { font-size: clamp(11px, 3.4vw, 14px); }
+            .header-title-names { max-width: 40vw; }
             #headerCodeDisplay { font-size: 10px; white-space: nowrap; }
+            .header-code-pill { padding: 6px 8px; font-size: 10px; }
+            .header-code-actions { gap: 7px; }
+            .header-room-change { padding: 4px 7px; font-size: 10px; }
             main.app-main { padding-top: 12px; }
             .controls-card { padding: 12px; gap: 10px; }
             .controls-month { width: 100%; justify-content: space-between; }
@@ -49,14 +60,18 @@
             .kpi-card { padding: 13px; min-width: 0; }
             .kpi-card .kpi-value { font-size: clamp(17px, 5vw, 22px); overflow-wrap: anywhere; }
             .budget-section { padding: 14px; }
-            .budget-heading { display: block; padding-bottom: 10px; }
-            .budget-heading h2 { font-size: 14px; margin-bottom: 9px; }
-            .budget-filters { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); width: 100%; }
-            .budget-filters button { padding: 7px 2px; font-size: 10px; }
+            .budget-heading { display: flex; padding-bottom: 10px; }
+            .budget-heading h2 { font-size: 14px; }
             #categoryBudgetGrid { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }
             .budget-card { padding: 10px; }
             .budget-card .budget-category-name { font-size: 11px; }
             .budget-card .budget-values { font-size: 10px; gap: 4px; }
+            .transaction-table-wrap { display: none; }
+            .transaction-card-list { display: grid; gap: 9px; padding: 10px; }
+            .transaction-summary { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px 12px; }
+            .transaction-summary > span:first-child { grid-column: 1 / -1; }
+            .transaction-filter-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+            .transaction-filter-grid select, .transaction-filter-grid input { min-width: 0; width: 100%; }
             #budgetShowMore { grid-column: 1 / -1; }
             .bottom-nav { bottom: max(8px, env(safe-area-inset-bottom)); width: calc(100% - 24px); }
         }
@@ -94,16 +109,15 @@
                     <i class="fa-solid fa-heart"></i>
                 </div>
                 <div>
-                    <h1 id="headerTitle" class="text-base sm:text-lg font-extrabold text-slate-800">몽돌 ♥ 땡구 신혼 가계부</h1>
+                    <h1 id="headerTitle" class="header-title text-base sm:text-lg font-extrabold text-slate-800"><span id="headerCoupleNames" class="header-title-names">남편 ♥ 아내</span><span>가계부</span></h1>
                     <span id="syncStatusBadge" onclick="showSyncHelpModal()" class="inline-flex items-center text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold border border-emerald-200 cursor-pointer">
                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 pulse-dot"></span> 실시간 연결됨
                     </span>
                 </div>
             </div>
-            <div class="liquid-pill px-3 py-1.5 rounded-2xl flex items-center space-x-2 text-xs">
+            <div class="header-code-pill liquid-pill px-3 py-1.5 rounded-2xl flex flex-col items-end gap-1 text-xs">
                 <span id="headerCodeDisplay" class="font-bold text-amber-900"><i class="fa-solid fa-key text-amber-500 mr-1"></i>코드: ----</span>
-                <button onclick="copyInviteCode()" class="text-slate-400 hover:text-slate-700" title="코드 복사"><i class="fa-regular fa-copy"></i></button>
-                <button onclick="showRoomSetup()" class="px-2 py-0.5 bg-amber-200 hover:bg-amber-300 text-amber-950 font-bold rounded-xl transition-all">변경</button>
+                <div class="header-code-actions"><button onclick="copyInviteCode()" class="text-slate-400 hover:text-slate-700" title="코드 복사"><i class="fa-regular fa-copy"></i></button><button onclick="showRoomSetup()" class="header-room-change px-2 py-0.5 bg-amber-200 hover:bg-amber-300 text-amber-950 font-bold rounded-xl transition-all">변경</button></div>
             </div>
         </div>
     </header>
@@ -132,7 +146,6 @@
                 <div class="kpi-card liquid-glass p-5">
                     <span class="text-xs font-bold text-slate-500 block mb-1">이번 달 총 수입</span>
                     <div class="kpi-value text-2xl font-black text-slate-800" id="kpiIncome">0 원</div>
-                    <div class="mt-2 text-xs text-slate-500 flex gap-2"><span id="kpiHusbandIncome" class="text-blue-600 font-semibold"></span>| <span id="kpiWifeIncome" class="text-pink-600 font-semibold"></span></div>
                 </div>
                 <div class="kpi-card liquid-glass p-5 cursor-pointer hover:border-rose-300" onclick="openBudgetModal()">
                     <div class="flex justify-between items-center mb-1"><span class="text-xs font-bold text-slate-500">이번 달 총 지출</span><span id="kpiExpensePercent" class="text-xs font-bold text-rose-600">0%</span></div>
@@ -154,12 +167,6 @@
             <div class="budget-section liquid-glass p-6 space-y-4">
                 <div class="budget-heading flex justify-between items-center pb-3 border-b border-white/60">
                     <h2 class="text-base font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-chart-line text-rose-500"></i> 카테고리별 예산 현황</h2>
-                    <div class="budget-filters flex space-x-1 liquid-pill p-1 rounded-2xl text-xs font-bold" aria-label="지출 주체 필터">
-                        <button onclick="setBudgetFilter('all')" id="bfAll" aria-pressed="true" class="px-3 py-1 rounded-xl bg-white text-rose-600 shadow-sm">전체</button>
-                        <button onclick="setBudgetFilter('joint')" id="bfJoint" aria-pressed="false" class="px-3 py-1 rounded-xl text-slate-500">공동</button>
-                        <button onclick="setBudgetFilter('husband')" id="bfHusband" aria-pressed="false" class="px-3 py-1 rounded-xl text-slate-500">남편</button>
-                        <button onclick="setBudgetFilter('wife')" id="bfWife" aria-pressed="false" class="px-3 py-1 rounded-xl text-slate-500">아내</button>
-                    </div>
                 </div>
                 <div id="categoryBudgetGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
                 <button id="budgetShowMore" onclick="toggleBudgetExpanded()" class="hidden w-full py-2 text-xs font-bold text-slate-500">모든 카테고리 보기</button>
@@ -174,15 +181,15 @@
             <div class="liquid-glass overflow-hidden">
                 <div class="p-5 border-b border-white/60 flex flex-col sm:flex-row justify-between gap-3">
                     <h3 class="text-base font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-list-ul"></i> 가계부 거래 상세 내역</h3>
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                        <select id="filterSpender" onchange="renderTransactions()" class="px-3 py-2 liquid-pill rounded-xl font-bold"><option value="all">모든 주체</option><option value="joint">공동</option><option value="husband">남편</option><option value="wife">아내</option></select>
+                    <div class="transaction-filter-grid grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
                         <select id="filterType" onchange="renderTransactions()" class="px-3 py-2 liquid-pill rounded-xl font-bold"><option value="all">모든 구분</option><option value="expense">변동지출</option><option value="fixed_expense">고정지출</option><option value="income">수입</option><option value="saving">저축/투자</option></select>
                         <select id="filterCategory" onchange="renderTransactions()" class="px-3 py-2 liquid-pill rounded-xl font-bold"><option value="all">모든 카테고리</option></select>
                         <input type="text" id="filterKeyword" oninput="renderTransactions()" placeholder="검색..." class="px-3 py-2 liquid-pill rounded-xl font-semibold">
                     </div>
                 </div>
-                <div class="overflow-x-auto"><table class="w-full text-left text-xs"><thead class="bg-white/40 text-slate-500 font-bold border-b border-white/60"><tr><th class="p-3">날짜</th><th class="p-3">구분</th><th class="p-3">주체</th><th class="p-3">카테고리</th><th class="p-3">내역명</th><th class="p-3">결제수단</th><th class="p-3 text-right">금액</th><th class="p-3 text-center">관리</th></tr></thead><tbody id="transactionTableBody" class="divide-y divide-white/40"></tbody></table></div>
-                <div class="p-4 bg-white/50 text-xs font-bold flex flex-wrap justify-between gap-2"><span>조회된 항목 합계</span><div class="flex gap-4"><span>수입: <b id="filteredIncomeSum" class="text-emerald-600">0원</b></span><span>변동: <b id="filteredExpenseSum" class="text-rose-600">0원</b></span><span>고정: <b id="filteredFixedExpenseSum" class="text-amber-600">0원</b></span><span>저축: <b id="filteredSavingSum" class="text-blue-600">0원</b></span></div></div>
+                <div class="transaction-table-wrap overflow-x-auto"><table class="w-full text-left text-xs"><thead class="bg-white/40 text-slate-500 font-bold border-b border-white/60"><tr><th class="p-3">날짜</th><th class="p-3">구분</th><th class="p-3">카테고리</th><th class="p-3">내역명</th><th class="p-3">결제수단</th><th class="p-3 text-right">금액</th><th class="p-3 text-center">관리</th></tr></thead><tbody id="transactionTableBody" class="divide-y divide-white/40"></tbody></table></div>
+                <div id="transactionCardList" class="transaction-card-list"></div>
+                <div class="transaction-summary p-4 bg-white/50 text-xs font-bold flex flex-wrap justify-between gap-2"><span>조회된 항목 합계</span><div>수입: <b id="filteredIncomeSum" class="text-emerald-600">0원</b></div><div>변동 지출: <b id="filteredExpenseSum" class="text-rose-600">0원</b></div><div>고정 지출: <b id="filteredFixedExpenseSum" class="text-amber-600">0원</b></div><div>저축: <b id="filteredSavingSum" class="text-blue-600">0원</b></div></div>
             </div>
 
             <!-- Asset Section -->
@@ -299,7 +306,7 @@
             <div class="flex justify-between items-center pb-3 border-b border-slate-200"><h3 id="transactionModalTitle" class="font-bold text-slate-800 text-sm"><i class="fa-solid fa-pen-to-square text-rose-500 mr-2"></i>거래 내역 등록/수정</h3><button onclick="closeModal('transactionModal')" class="text-slate-400"><i class="fa-solid fa-xmark text-lg"></i></button></div>
             <form id="transactionForm" onsubmit="handleTransactionSubmit(event)" class="space-y-3 text-xs">
                 <div class="grid grid-cols-2 gap-2"><div><label class="block font-bold mb-1">날짜</label><input type="date" id="tDate" required class="w-full p-2.5 liquid-pill rounded-xl font-bold"></div><div><label class="block font-bold mb-1">구분</label><select id="tType" onchange="updateCategoryDropdown()" class="w-full p-2.5 liquid-pill rounded-xl font-bold"><option value="expense">지출 (변동비)</option><option value="fixed_expense">고정 지출</option><option value="income">수입</option><option value="saving">저축/투자</option></select></div></div>
-                <div class="grid grid-cols-2 gap-2"><div><label class="block font-bold mb-1">주체</label><select id="tSpender" class="w-full p-2.5 liquid-pill rounded-xl font-bold"><option value="joint">공동</option><option value="husband">남편</option><option value="wife">아내</option></select></div><div><label class="block font-bold mb-1">카테고리</label><select id="tCategory" class="w-full p-2.5 liquid-pill rounded-xl font-bold"></select></div></div>
+                <div><label class="block font-bold mb-1">카테고리</label><select id="tCategory" class="w-full p-2.5 liquid-pill rounded-xl font-bold"></select></div>
                 <div><label class="block font-bold mb-1">내역명</label><input type="text" id="tTitle" required placeholder="예: 이마트 장보기" class="w-full p-2.5 liquid-pill rounded-xl font-semibold"></div>
                 <div class="grid grid-cols-2 gap-2"><div><label class="block font-bold mb-1">금액 (원)</label><input type="number" id="tAmount" min="0" step="1" required placeholder="0" class="w-full p-2.5 liquid-pill rounded-xl font-bold"></div><div id="tPaymentContainer"><label class="block font-bold mb-1">결제수단</label><select id="tPayment" class="w-full p-2.5 liquid-pill rounded-xl font-bold"></select></div></div>
                 <div><label class="block font-bold mb-1">메모</label><input type="text" id="tMemo" class="w-full p-2.5 liquid-pill rounded-xl font-semibold"></div>
@@ -387,15 +394,16 @@
             saving: [{ name: '주택 청약/적금', icon: 'fa-piggy-bank', color: '#2563eb' }, { name: '주식/ETF 투자', icon: 'fa-chart-line', color: '#7c3aed' }, { name: '비상금 적립', icon: 'fa-shield-halved', color: '#059669' }]
         };
 
-        window.paymentMethods = ['공동신용카드', '생활비통장(계좌이체)', '몽돌개인카드', '땡구개인카드', '현금/제로페이'];
+        window.paymentMethods = ['공동신용카드', '생활비통장(계좌이체)', '남편개인카드', '아내개인카드', '현금/제로페이'];
         window.categoryBudgets = {};
         window.overallBudget = 0;
         window.transactions = [];
-        window.budgetFilterSpender = 'all';
         window.activeRoomCode = localStorage.getItem('shinhon_room_code') || '';
         window.budgetExpanded = false;
-        window.husbandName = localStorage.getItem('shinhon_husband_name') || '몽돌';
-        window.wifeName = localStorage.getItem('shinhon_wife_name') || '땡구';
+        window.husbandName = localStorage.getItem('shinhon_husband_name') || '남편';
+        window.wifeName = localStorage.getItem('shinhon_wife_name') || '아내';
+        if (window.husbandName === '몽돌') window.husbandName = '남편';
+        if (window.wifeName === '땡구') window.wifeName = '아내';
 
         function formatKRW(num) { return new Intl.NumberFormat('ko-KR').format(num || 0) + '원'; }
         function formatNumberOnly(num) { return new Intl.NumberFormat('ko-KR').format(num || 0); }
@@ -428,12 +436,8 @@
         window.toggleBudgetExpanded = () => { window.budgetExpanded = !window.budgetExpanded; window.renderDashboard(); };
 
         window.updateNamesUI = () => {
-            const h = window.husbandName || '몽돌', w = window.wifeName || '땡구';
-            document.getElementById('headerTitle').textContent = `${h} ♥ ${w} 신혼 가계부`;
-            const ts = document.getElementById('tSpender');
-            if (ts && ts.options.length >= 3) { ts.options[1].textContent = `남편 (${h})`; ts.options[2].textContent = `아내 (${w})`; }
-            const fs = document.getElementById('filterSpender');
-            if (fs && fs.options.length >= 4) { fs.options[2].textContent = `남편 (${h})`; fs.options[3].textContent = `아내 (${w})`; }
+            const h = window.husbandName || '남편', w = window.wifeName || '아내';
+            document.getElementById('headerCoupleNames').textContent = `${h} ♥ ${w}`;
         };
 
         window.updateDateUI = () => {
@@ -553,13 +557,7 @@
             const exp = curr.filter(t => t.type === 'expense' || t.type === 'fixed_expense').reduce((s, t) => s + t.amount, 0);
             const sav = curr.filter(t => t.type === 'saving').reduce((s, t) => s + t.amount, 0);
 
-            const hName = window.husbandName || '몽돌', wName = window.wifeName || '땡구';
-            const husbandInc = curr.filter(t => t.type === 'income' && t.spender === 'husband').reduce((s, t) => s + t.amount, 0);
-            const wifeInc = curr.filter(t => t.type === 'income' && t.spender === 'wife').reduce((s, t) => s + t.amount, 0);
-
             document.getElementById('kpiIncome').textContent = formatKRW(inc);
-            document.getElementById('kpiHusbandIncome').textContent = `${hName}: ${formatNumberOnly(husbandInc)}원 `;
-            document.getElementById('kpiWifeIncome').textContent = `${wName}: ${formatNumberOnly(wifeInc)}원`;
 
             document.getElementById('kpiExpense').textContent = formatKRW(exp);
             document.getElementById('kpiSavings').textContent = formatKRW(sav);
@@ -590,15 +588,14 @@
         window.renderCategoryBudgetGrid = (curr, prev) => {
             const grid = document.getElementById('categoryBudgetGrid'); if (!grid) return; grid.innerHTML = '';
             const allCats = [...window.CATEGORIES.expense, ...window.CATEGORIES.fixed_expense];
-            const filteredTransactions = window.budgetFilterSpender === 'all' ? curr : curr.filter(t => t.spender === window.budgetFilterSpender);
             const visibleCats = allCats.map(cat => ({
                 cat,
                 budget: parseInt(window.categoryBudgets[cat.name], 10) || 0,
-                spent: filteredTransactions.filter(t => (t.type === 'expense' || t.type === 'fixed_expense') && t.category === cat.name).reduce((s, t) => s + t.amount, 0)
+                spent: curr.filter(t => (t.type === 'expense' || t.type === 'fixed_expense') && t.category === cat.name).reduce((s, t) => s + t.amount, 0)
             })).filter(item => item.budget > 0 || item.spent > 0);
             const showMore = document.getElementById('budgetShowMore');
             if (visibleCats.length === 0) {
-                grid.innerHTML = '<div class="col-span-full py-5 text-center text-xs text-slate-500">선택한 주체의 예산이나 지출 내역이 없습니다. 목표 예산을 설정해 보세요.</div>';
+                grid.innerHTML = '<div class="col-span-full py-5 text-center text-xs text-slate-500">등록된 지출이나 예산이 없습니다. 목표 예산을 설정해 보세요.</div>';
                 showMore?.classList.add('hidden');
                 return;
             }
@@ -620,20 +617,6 @@
                 `;
                 grid.appendChild(card);
             });
-        };
-
-        window.setBudgetFilter = (spender) => {
-            window.budgetFilterSpender = spender;
-            ['bfAll', 'bfJoint', 'bfHusband', 'bfWife'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) {
-                    const active = id === ('bf' + spender.charAt(0).toUpperCase() + spender.slice(1)) || (id === 'bfAll' && spender === 'all');
-                    el.className = active ? "px-3 py-1 rounded-xl bg-white text-rose-600 shadow-sm" : "px-3 py-1 rounded-xl text-slate-500";
-                    el.setAttribute('aria-pressed', String(active));
-                }
-            });
-            window.budgetExpanded = false;
-            window.renderDashboard();
         };
 
         window.renderCharts = (curr, prev) => {
@@ -662,14 +645,13 @@
 
         window.renderTransactions = () => {
             const body = document.getElementById('transactionTableBody'); if (!body) return; body.innerHTML = '';
+            const cards = document.getElementById('transactionCardList'); if (cards) cards.innerHTML = '';
             const curr = window.getCurrentMonthTransactions();
-            const fSpender = document.getElementById('filterSpender')?.value || 'all';
             const fType = document.getElementById('filterType')?.value || 'all';
             const fCat = document.getElementById('filterCategory')?.value || 'all';
             const fKw = (document.getElementById('filterKeyword')?.value || '').toLowerCase();
 
             let filtered = curr.filter(t => {
-                if (fSpender !== 'all' && t.spender !== fSpender) return false;
                 if (fType !== 'all' && t.type !== fType) return false;
                 if (fCat !== 'all' && t.category !== fCat) return false;
                 if (fKw && !(t.title || '').toLowerCase().includes(fKw)) return false;
@@ -677,16 +659,21 @@
             });
 
             filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+            const typeLabels = { expense: '변동 지출', fixed_expense: '고정 지출', income: '수입', saving: '저축/투자' };
+            const emptyMessage = '등록된 거래 내역이 없습니다. [내역 등록] 버튼으로 추가해 주세요.';
 
             if (filtered.length === 0) {
-                body.innerHTML = `<tr><td colspan="8" class="p-6 text-center text-slate-400 font-medium">등록된 거래 내역이 없습니다. [내역 등록] 버튼으로 추가해 주세요.</td></tr>`;
+                body.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-400 font-medium">${emptyMessage}</td></tr>`;
+                if (cards) cards.innerHTML = `<div class="p-5 text-center text-xs text-slate-400 font-medium">${emptyMessage}</div>`;
             } else {
                 filtered.forEach(t => {
+                    const typeLabel = typeLabels[t.type] || t.type || '기타';
+                    const recurring = t.isRecurring ? ' <span class="text-[9px] bg-amber-100 text-amber-800 px-1 rounded">반복</span>' : '';
                     const tr = document.createElement('tr');
                     tr.className = 'hover:bg-white/60 transition-colors border-b border-white/40';
                     tr.innerHTML = `
-                        <td class="p-3 font-semibold">${t.date}</td><td class="p-3">${t.type}</td><td class="p-3">${t.spender}</td><td class="p-3 font-bold">${t.category}</td>
-                        <td class="p-3 font-bold">${t.title}${t.isRecurring ? ' <span class="text-[9px] bg-amber-100 text-amber-800 px-1 rounded">반복</span>' : ''}</td>
+                        <td class="p-3 font-semibold whitespace-nowrap">${t.date}</td><td class="p-3 whitespace-nowrap">${typeLabel}</td><td class="p-3 font-bold">${t.category}</td>
+                        <td class="p-3 font-bold">${t.title}${recurring}</td>
                         <td class="p-3 text-slate-500">${t.paymentMethod || '-'}</td><td class="p-3 text-right font-black">${formatNumberOnly(t.amount)}원</td>
                         <td class="p-3 text-center space-x-1">
                             <button onclick="editTransaction(${t.id})" class="text-slate-400 hover:text-blue-500 mr-1" title="수정"><i class="fa-solid fa-pen"></i></button>
@@ -694,6 +681,21 @@
                         </td>
                     `;
                     body.appendChild(tr);
+                    if (cards) {
+                        const card = document.createElement('article');
+                        const typeColor = t.type === 'income' ? 'text-emerald-700 bg-emerald-100' : t.type === 'saving' ? 'text-blue-700 bg-blue-100' : 'text-rose-700 bg-rose-100';
+                        card.className = 'transaction-mobile-card liquid-pill rounded-2xl p-3.5 border border-white/80';
+                        card.innerHTML = `
+                            <div class="flex items-start justify-between gap-2">
+                                <div class="min-w-0"><span class="inline-flex rounded-full px-2 py-1 text-[10px] font-bold ${typeColor}">${typeLabel}</span><span class="ml-2 text-[10px] font-semibold text-slate-400">${t.date || ''}</span></div>
+                                <strong class="shrink-0 text-sm font-black text-slate-800">${formatNumberOnly(t.amount)}원</strong>
+                            </div>
+                            <div class="mt-2 break-words text-sm font-extrabold text-slate-800">${t.title || '내역'}${recurring}</div>
+                            <div class="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 text-[11px] text-slate-500"><span class="font-bold text-slate-600">${t.category || '미분류'}</span><span aria-hidden="true">·</span><span class="break-all">${t.paymentMethod || '결제수단 없음'}</span></div>
+                            <div class="mt-3 flex justify-end gap-4 border-t border-white/70 pt-2"><button onclick="editTransaction(${t.id})" class="text-xs font-bold text-blue-600"><i class="fa-solid fa-pen mr-1"></i>수정</button><button onclick="deleteTransaction(${t.id})" class="text-xs font-bold text-rose-600"><i class="fa-solid fa-trash-can mr-1"></i>삭제</button></div>
+                        `;
+                        cards.appendChild(card);
+                    }
                 });
             }
 
@@ -715,7 +717,6 @@
             document.getElementById('tDate').value = target.date || new Date().toISOString().split('T')[0];
             document.getElementById('tType').value = target.type || 'expense';
             window.updateCategoryDropdown();
-            document.getElementById('tSpender').value = target.spender || 'joint';
             document.getElementById('tCategory').value = target.category || '';
             document.getElementById('tTitle').value = target.title || '';
             document.getElementById('tAmount').value = target.amount || 0;
@@ -762,7 +763,7 @@
             const typeVal = document.getElementById('tType').value;
             const dataObj = {
                 date: document.getElementById('tDate').value, type: typeVal,
-                spender: document.getElementById('tSpender').value, category: document.getElementById('tCategory').value,
+                category: document.getElementById('tCategory').value,
                 title: document.getElementById('tTitle').value, amount: parseInt(document.getElementById('tAmount').value, 10) || 0,
                 paymentMethod: typeVal === 'income' ? '-' : document.getElementById('tPayment').value,
                 memo: document.getElementById('tMemo').value, isRecurring: document.getElementById('tRecurring').checked
@@ -918,8 +919,8 @@
         };
 
         window.openSettingsModal = () => {
-            document.getElementById('husbandNameInput').value = window.husbandName || '몽돌';
-            document.getElementById('wifeNameInput').value = window.wifeName || '땡구';
+            document.getElementById('husbandNameInput').value = window.husbandName || '남편';
+            document.getElementById('wifeNameInput').value = window.wifeName || '아내';
             window.switchSettingsTab('category'); openModal('settingsModal');
         };
 
@@ -984,8 +985,8 @@
         };
 
         window.saveCoupleNames = () => {
-            window.husbandName = document.getElementById('husbandNameInput').value.trim() || '몽돌';
-            window.wifeName = document.getElementById('wifeNameInput').value.trim() || '땡구';
+            window.husbandName = document.getElementById('husbandNameInput').value.trim() || '남편';
+            window.wifeName = document.getElementById('wifeNameInput').value.trim() || '아내';
             window.updateNamesUI(); window.saveStateToFirestore(); window.renderDashboard(); window.showToast('별명이 저장되었습니다.');
         };
 
@@ -1104,11 +1105,19 @@
                     if (snapData.overallBudget !== undefined) window.overallBudget = snapData.overallBudget;
                     if (snapData.categories) window.CATEGORIES = snapData.categories;
                     if (snapData.paymentMethods) window.paymentMethods = snapData.paymentMethods;
-                    if (snapData.husbandName) window.husbandName = snapData.husbandName;
-                    if (snapData.wifeName) window.wifeName = snapData.wifeName;
+                    let migrateLegacyNames = false;
+                    if (snapData.husbandName) {
+                        window.husbandName = snapData.husbandName === '몽돌' ? '남편' : snapData.husbandName;
+                        migrateLegacyNames ||= snapData.husbandName === '몽돌';
+                    }
+                    if (snapData.wifeName) {
+                        window.wifeName = snapData.wifeName === '땡구' ? '아내' : snapData.wifeName;
+                        migrateLegacyNames ||= snapData.wifeName === '땡구';
+                    }
                     if (snapData.assets) window.assets = snapData.assets;
 
                     window.updateNamesUI(); window.renderDashboard(); window.renderTransactions(); window.renderAssets();
+                    if (migrateLegacyNames) window.saveStateToFirestore();
                     if (window.currentView === 'calendar') window.renderCalendar();
                 }
             });
