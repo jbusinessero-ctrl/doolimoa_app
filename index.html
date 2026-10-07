@@ -42,6 +42,8 @@
         .header-room-change { white-space: nowrap; word-break: keep-all; flex: 0 0 auto; }
         .transaction-card-list { display: none; }
         .transaction-mobile-card { min-width: 0; }
+        .calendar-day-cell { min-width: 0; overflow: hidden; }
+        .calendar-day-amount { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         @media (max-width: 639px) {
             body { padding-bottom: 88px; }
             header .header-inner { min-height: 72px; height: auto; padding: 9px 12px; gap: 8px; }
@@ -72,6 +74,18 @@
             .transaction-summary > span:first-child { grid-column: 1 / -1; }
             .transaction-filter-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
             .transaction-filter-grid select, .transaction-filter-grid input { min-width: 0; width: 100%; }
+            #calendarView { padding: 12px; gap: 12px; }
+            .calendar-heading { align-items: flex-start; flex-direction: column; gap: 8px; }
+            .calendar-heading h2 { font-size: 13px; }
+            .calendar-heading > div { align-self: flex-start; padding: 6px 9px; font-size: 10px; }
+            .calendar-weekdays, #calendarGrid { grid-template-columns: repeat(7, minmax(0,1fr)); gap: 3px; }
+            .calendar-weekdays { font-size: 10px; }
+            .calendar-day-cell { min-height: 62px; padding: 4px 2px; border-radius: 10px; }
+            .calendar-day-label { font-size: 10px; }
+            .calendar-no-spend { font-size: 7px; line-height: 1; padding: 2px 1px; }
+            .calendar-no-spend-text { display: none; }
+            .calendar-day-amount { font-size: 8px; line-height: 1.35; }
+            #calendarGrid > div:empty { min-height: 0; }
             #budgetShowMore { grid-column: 1 / -1; }
             .bottom-nav { bottom: max(8px, env(safe-area-inset-bottom)); width: calc(100% - 24px); }
         }
@@ -189,6 +203,7 @@
                 </div>
                 <div class="transaction-table-wrap overflow-x-auto"><table class="w-full text-left text-xs"><thead class="bg-white/40 text-slate-500 font-bold border-b border-white/60"><tr><th class="p-3">날짜</th><th class="p-3">구분</th><th class="p-3">카테고리</th><th class="p-3">내역명</th><th class="p-3">결제수단</th><th class="p-3 text-right">금액</th><th class="p-3 text-center">관리</th></tr></thead><tbody id="transactionTableBody" class="divide-y divide-white/40"></tbody></table></div>
                 <div id="transactionCardList" class="transaction-card-list"></div>
+                <button id="transactionShowMore" onclick="showMoreTransactions()" class="hidden mx-auto my-3 px-5 py-2 rounded-xl liquid-btn text-xs font-bold text-slate-600">내역 더 보기</button>
                 <div class="transaction-summary p-4 bg-white/50 text-xs font-bold flex flex-wrap justify-between gap-2"><span>조회된 항목 합계</span><div>수입: <b id="filteredIncomeSum" class="text-emerald-600">0원</b></div><div>변동 지출: <b id="filteredExpenseSum" class="text-rose-600">0원</b></div><div>고정 지출: <b id="filteredFixedExpenseSum" class="text-amber-600">0원</b></div><div>저축: <b id="filteredSavingSum" class="text-blue-600">0원</b></div></div>
             </div>
 
@@ -215,12 +230,12 @@
 
         <!-- CALENDAR VIEW -->
         <div id="calendarView" class="liquid-glass p-6 space-y-5 hidden">
-            <div class="flex justify-between items-center pb-3 border-b border-white/60">
+            <div class="calendar-heading flex justify-between items-center pb-3 border-b border-white/60">
                 <h2 class="text-base font-black text-slate-800 flex items-center gap-2"><i class="fa-regular fa-calendar-check text-rose-500"></i> 월간 소비 달력 & 무지출 스탬프</h2>
                 <div class="px-4 py-2 rounded-2xl bg-rose-100 text-rose-700 text-xs font-black border border-rose-200 shadow-sm"><i class="fa-solid fa-heart text-rose-500 mr-1"></i>이번 달 무지출 <b id="calNoSpendCount" class="text-sm">0일</b> 성공!</div>
             </div>
-            <div class="grid grid-cols-7 gap-2 text-center text-xs font-black text-slate-600"><div class="text-rose-500">일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div class="text-blue-500">토</div></div>
-            <div id="calendarGrid" class="grid grid-cols-7 gap-2"></div>
+            <div class="calendar-weekdays grid grid-cols-7 gap-2 text-center text-xs font-black text-slate-600"><div class="text-rose-500">일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div class="text-blue-500">토</div></div>
+            <div id="calendarGrid" class="grid grid-cols-7 gap-2 min-w-0"></div>
         </div>
 
     </main>
@@ -266,7 +281,7 @@
             <div class="flex border-b border-slate-200 p-1.5 gap-1 bg-slate-100/50 text-xs font-bold">
                 <button id="tabBtnCat" onclick="switchSettingsTab('category')" class="flex-1 py-2 rounded-xl bg-white text-rose-600 shadow-sm">카테고리</button>
                 <button id="tabBtnPay" onclick="switchSettingsTab('payment')" class="flex-1 py-2 rounded-xl text-slate-500">결제수단</button>
-                <button id="tabBtnProfile" onclick="switchSettingsTab('profile')" class="flex-1 py-2 rounded-xl text-slate-500">부부 별명</button>
+                <button id="tabBtnProfile" onclick="switchSettingsTab('profile')" class="flex-1 py-2 rounded-xl text-slate-500">커플 별명</button>
             </div>
             <div class="p-6 overflow-y-auto space-y-4 flex-1 text-xs">
                 <div id="settingsCategorySection" class="space-y-3">
@@ -378,8 +393,6 @@
                 { name: '문화/취미/데이트', icon: 'fa-film', color: '#ec4899' },
                 { name: '경조사/이벤트', icon: 'fa-gift', color: '#f59e0b' },
                 { name: '의료/건강', icon: 'fa-notes-medical', color: '#06b6d4' },
-                { name: '몽돌 용돈', icon: 'fa-user-tie', color: '#3b82f6' },
-                { name: '땡구 용돈', icon: 'fa-user-dress', color: '#ec4899' },
                 { name: '기타 지출', icon: 'fa-ellipsis', color: '#64748b' }
             ],
             fixed_expense: [
@@ -400,13 +413,21 @@
         window.transactions = [];
         window.activeRoomCode = localStorage.getItem('shinhon_room_code') || '';
         window.budgetExpanded = false;
+        window.transactionVisibleCount = 7;
+        window.transactionListContext = '';
         window.husbandName = localStorage.getItem('shinhon_husband_name') || '남편';
         window.wifeName = localStorage.getItem('shinhon_wife_name') || '아내';
+        window.pendingCoupleNamesSync = false;
         if (window.husbandName === '몽돌') window.husbandName = '남편';
         if (window.wifeName === '땡구') window.wifeName = '아내';
 
         function formatKRW(num) { return new Intl.NumberFormat('ko-KR').format(num || 0) + '원'; }
         function formatNumberOnly(num) { return new Intl.NumberFormat('ko-KR').format(num || 0); }
+        function formatCalendarAmount(num) {
+            if (num >= 100000000) return `${new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 1 }).format(num / 100000000)}억`;
+            if (num >= 10000) return `${new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 1 }).format(num / 10000)}만`;
+            return formatNumberOnly(num);
+        }
 
         window.switchMainView = (mode) => {
             window.currentView = mode;
@@ -482,11 +503,12 @@
                 if (isNoSpend) noSpendCount++;
 
                 const cell = document.createElement('div');
-                cell.className = "min-h-[85px] p-2 rounded-2xl liquid-pill border hover:bg-white/90 cursor-pointer flex flex-col justify-between";
+                cell.className = "calendar-day-cell min-h-[85px] p-2 rounded-2xl liquid-pill border hover:bg-white/90 cursor-pointer flex flex-col justify-between";
                 cell.onclick = () => window.openDayDetailModal(dateStr, data.items);
+                const moneyLabel = (amount) => window.matchMedia('(max-width: 639px)').matches ? formatCalendarAmount(amount) : formatNumberOnly(amount);
                 cell.innerHTML = `
-                    <div class="flex justify-between items-center"><span class="text-xs font-black text-slate-800">${d}</span>${isNoSpend ? `<span class="px-1 bg-rose-100 text-rose-600 font-bold text-[9px] rounded">♥ 무지출</span>` : ''}</div>
-                    <div class="text-[10px] font-bold text-right">${data.income > 0 ? `<div class="text-emerald-600">+${formatNumberOnly(data.income)}</div>` : ''}${data.expense > 0 ? `<div class="text-rose-600">-${formatNumberOnly(data.expense)}</div>` : ''}</div>
+                    <div class="flex justify-between items-center gap-0.5"><span class="calendar-day-label text-xs font-black text-slate-800">${d}</span>${isNoSpend ? `<span class="calendar-no-spend px-1 bg-rose-100 text-rose-600 font-bold text-[9px] rounded"><span>♥</span><span class="calendar-no-spend-text"> 무지출</span></span>` : ''}</div>
+                    <div class="calendar-day-amount text-[10px] font-bold text-right">${data.income > 0 ? `<div class="text-emerald-600" title="수입 ${formatNumberOnly(data.income)}원">+${moneyLabel(data.income)}</div>` : ''}${data.expense > 0 ? `<div class="text-rose-600" title="지출 ${formatNumberOnly(data.expense)}원">-${moneyLabel(data.expense)}</div>` : ''}</div>
                 `;
                 grid.appendChild(cell);
             }
@@ -651,6 +673,11 @@
             const fCat = document.getElementById('filterCategory')?.value || 'all';
             const fKw = (document.getElementById('filterKeyword')?.value || '').toLowerCase();
 
+            const context = JSON.stringify([window.currentYear, window.currentMonth, fType, fCat, fKw]);
+            if (context !== window.transactionListContext) {
+                window.transactionListContext = context;
+                window.transactionVisibleCount = 7;
+            }
             let filtered = curr.filter(t => {
                 if (fType !== 'all' && t.type !== fType) return false;
                 if (fCat !== 'all' && t.category !== fCat) return false;
@@ -658,7 +685,14 @@
                 return true;
             });
 
-            filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+            filtered.sort((a, b) => new Date(b.date) - new Date(a.date) || (Number(b.id) || 0) - (Number(a.id) || 0));
+            const visibleTransactions = filtered.slice(0, window.transactionVisibleCount);
+            const showMoreButton = document.getElementById('transactionShowMore');
+            if (showMoreButton) {
+                const remaining = filtered.length - visibleTransactions.length;
+                showMoreButton.classList.toggle('hidden', remaining <= 0);
+                showMoreButton.textContent = `내역 더 보기 (${Math.min(10, remaining)}개)`;
+            }
             const typeLabels = { expense: '변동 지출', fixed_expense: '고정 지출', income: '수입', saving: '저축/투자' };
             const emptyMessage = '등록된 거래 내역이 없습니다. [내역 등록] 버튼으로 추가해 주세요.';
 
@@ -666,7 +700,7 @@
                 body.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-400 font-medium">${emptyMessage}</td></tr>`;
                 if (cards) cards.innerHTML = `<div class="p-5 text-center text-xs text-slate-400 font-medium">${emptyMessage}</div>`;
             } else {
-                filtered.forEach(t => {
+                visibleTransactions.forEach(t => {
                     const typeLabel = typeLabels[t.type] || t.type || '기타';
                     const recurring = t.isRecurring ? ' <span class="text-[9px] bg-amber-100 text-amber-800 px-1 rounded">반복</span>' : '';
                     const tr = document.createElement('tr');
@@ -708,6 +742,11 @@
             document.getElementById('filteredExpenseSum').textContent = formatKRW(expSum);
             document.getElementById('filteredFixedExpenseSum').textContent = formatKRW(fixedSum);
             document.getElementById('filteredSavingSum').textContent = formatKRW(savSum);
+        };
+
+        window.showMoreTransactions = () => {
+            window.transactionVisibleCount += 10;
+            window.renderTransactions();
         };
 
         window.editTransaction = (id) => {
@@ -984,10 +1023,16 @@
             window.saveStateToFirestore(); window.renderPaymentSettingsList();
         };
 
-        window.saveCoupleNames = () => {
+        window.saveCoupleNames = async () => {
             window.husbandName = document.getElementById('husbandNameInput').value.trim() || '남편';
             window.wifeName = document.getElementById('wifeNameInput').value.trim() || '아내';
-            window.updateNamesUI(); window.saveStateToFirestore(); window.renderDashboard(); window.showToast('별명이 저장되었습니다.');
+            localStorage.setItem('shinhon_husband_name', window.husbandName);
+            localStorage.setItem('shinhon_wife_name', window.wifeName);
+            window.pendingCoupleNamesSync = true;
+            window.updateNamesUI(); window.renderDashboard();
+            const saved = await window.saveStateToFirestore();
+            if (saved) window.pendingCoupleNamesSync = false;
+            window.showToast(saved ? '커플 별명이 저장되었습니다.' : '기기에 별명을 저장했습니다. 인터넷 연결 후 다시 저장해 주세요.');
         };
 
         window.openBudgetModal = () => {
@@ -1106,25 +1151,30 @@
                     if (snapData.categories) window.CATEGORIES = snapData.categories;
                     if (snapData.paymentMethods) window.paymentMethods = snapData.paymentMethods;
                     let migrateLegacyNames = false;
-                    if (snapData.husbandName) {
+                    if (snapData.husbandName && !window.pendingCoupleNamesSync) {
                         window.husbandName = snapData.husbandName === '몽돌' ? '남편' : snapData.husbandName;
+                        localStorage.setItem('shinhon_husband_name', window.husbandName);
                         migrateLegacyNames ||= snapData.husbandName === '몽돌';
                     }
-                    if (snapData.wifeName) {
+                    if (snapData.wifeName && !window.pendingCoupleNamesSync) {
                         window.wifeName = snapData.wifeName === '땡구' ? '아내' : snapData.wifeName;
+                        localStorage.setItem('shinhon_wife_name', window.wifeName);
                         migrateLegacyNames ||= snapData.wifeName === '땡구';
                     }
                     if (snapData.assets) window.assets = snapData.assets;
 
                     window.updateNamesUI(); window.renderDashboard(); window.renderTransactions(); window.renderAssets();
                     if (migrateLegacyNames) window.saveStateToFirestore();
+                    if (window.pendingCoupleNamesSync) {
+                        window.saveStateToFirestore().then(saved => { if (saved) window.pendingCoupleNamesSync = false; });
+                    }
                     if (window.currentView === 'calendar') window.renderCalendar();
                 }
             });
         };
 
         window.saveStateToFirestore = async () => {
-            if (!window.activeRoomCode || !db) return;
+            if (!window.activeRoomCode || !db) return false;
             try {
                 const payload = {
                     transactions: window.transactions,
@@ -1141,7 +1191,8 @@
                 // Strictly write to original path
                 const originalDocRef = doc(db, 'artifacts', ORIGINAL_APP_ID, 'public', 'data', 'ledgers', window.activeRoomCode);
                 await setDoc(originalDocRef, payload, { merge: true });
-            } catch (e) { console.error("Cloud Save error:", e); }
+                return true;
+            } catch (e) { console.error("Cloud Save error:", e); return false; }
         };
 
         window.addEventListener('load', () => {
