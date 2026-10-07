@@ -417,7 +417,7 @@
         window.transactionListContext = '';
         window.husbandName = localStorage.getItem('shinhon_husband_name') || '남편';
         window.wifeName = localStorage.getItem('shinhon_wife_name') || '아내';
-        window.pendingCoupleNamesSync = false;
+        window.pendingCoupleNamesSync = localStorage.getItem('shinhon_pending_couple_names_sync') === 'true';
         if (window.husbandName === '몽돌') window.husbandName = '남편';
         if (window.wifeName === '땡구') window.wifeName = '아내';
 
@@ -1029,9 +1029,9 @@
             localStorage.setItem('shinhon_husband_name', window.husbandName);
             localStorage.setItem('shinhon_wife_name', window.wifeName);
             window.pendingCoupleNamesSync = true;
+            localStorage.setItem('shinhon_pending_couple_names_sync', 'true');
             window.updateNamesUI(); window.renderDashboard();
             const saved = await window.saveStateToFirestore();
-            if (saved) window.pendingCoupleNamesSync = false;
             window.showToast(saved ? '커플 별명이 저장되었습니다.' : '기기에 별명을 저장했습니다. 인터넷 연결 후 다시 저장해 주세요.');
         };
 
@@ -1151,12 +1151,15 @@
                     if (snapData.categories) window.CATEGORIES = snapData.categories;
                     if (snapData.paymentMethods) window.paymentMethods = snapData.paymentMethods;
                     let migrateLegacyNames = false;
-                    if (snapData.husbandName && !window.pendingCoupleNamesSync) {
+                    if (window.pendingCoupleNamesSync) {
+                        window.husbandName = localStorage.getItem('shinhon_husband_name') || window.husbandName || '남편';
+                        window.wifeName = localStorage.getItem('shinhon_wife_name') || window.wifeName || '아내';
+                    } else if (snapData.husbandName) {
                         window.husbandName = snapData.husbandName === '몽돌' ? '남편' : snapData.husbandName;
                         localStorage.setItem('shinhon_husband_name', window.husbandName);
                         migrateLegacyNames ||= snapData.husbandName === '몽돌';
                     }
-                    if (snapData.wifeName && !window.pendingCoupleNamesSync) {
+                    if (!window.pendingCoupleNamesSync && snapData.wifeName) {
                         window.wifeName = snapData.wifeName === '땡구' ? '아내' : snapData.wifeName;
                         localStorage.setItem('shinhon_wife_name', window.wifeName);
                         migrateLegacyNames ||= snapData.wifeName === '땡구';
@@ -1191,6 +1194,10 @@
                 // Strictly write to original path
                 const originalDocRef = doc(db, 'artifacts', ORIGINAL_APP_ID, 'public', 'data', 'ledgers', window.activeRoomCode);
                 await setDoc(originalDocRef, payload, { merge: true });
+                if (window.pendingCoupleNamesSync) {
+                    window.pendingCoupleNamesSync = false;
+                    localStorage.removeItem('shinhon_pending_couple_names_sync');
+                }
                 return true;
             } catch (e) { console.error("Cloud Save error:", e); return false; }
         };
