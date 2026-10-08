@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"></script>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=Noto+Sans+KR:wght@400;600;800&display=swap" rel="stylesheet">
     
@@ -1158,6 +1159,8 @@
         };
 
         const app = initializeApp(firebaseConfig);
+        const KAKAO_JS_KEY = 'b77b71fcbc24aab2a81e398d4ebd9b16';
+        if (window.Kakao && !window.Kakao.isInitialized()) window.Kakao.init(KAKAO_JS_KEY);
         localStorage.removeItem('shinhon_room_code');
         const auth = getAuth(app);
         const functions = getFunctions(app, 'us-central1');
@@ -1226,17 +1229,44 @@
             } finally { window.isSavingSecureLedger = false; }
         };
         window.startKakaoLogin = () => {
-            if (!window.NativeAuth?.loginWithKakao) {
-                window.showToast('카카오 로그인은 Android 앱에서 이용할 수 있습니다.');
+            if (window.NativeAuth?.loginWithKakao) {
+                window.NativeAuth.loginWithKakao();
                 return;
             }
-            window.NativeAuth.loginWithKakao();
+            if (!window.Kakao?.Auth) return window.showToast('카카오 로그인 모듈을 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.');
+            const state = crypto.randomUUID();
+            sessionStorage.setItem('doolimoa_kakao_oauth_state', state);
+            window.Kakao.Auth.authorize({ redirectUri: 'https://jbusinessero-ctrl.github.io/doolimoa_app/', state });
         };
         window.onNativeFirebaseCustomToken = async (customToken) => {
             try { await signInWithCustomToken(auth, customToken); }
             catch (error) { window.showToast(error.message || '로그인을 완료하지 못했습니다.'); }
         };
         window.onNativeAuthError = (message) => window.showToast(message || '카카오 로그인을 완료하지 못했습니다.');
+        const kakaoParams = new URLSearchParams(location.search);
+        const kakaoCode = kakaoParams.get('code');
+        const kakaoError = kakaoParams.get('error');
+        if (kakaoError) {
+            history.replaceState({}, document.title, location.pathname);
+            window.showToast('카카오 로그인이 취소되었거나 승인되지 않았습니다.');
+        }
+        if (kakaoCode) {
+            const expectedState = sessionStorage.getItem('doolimoa_kakao_oauth_state');
+            sessionStorage.removeItem('doolimoa_kakao_oauth_state');
+            history.replaceState({}, document.title, location.pathname + (kakaoParams.get('token') ? `?token=${encodeURIComponent(kakaoParams.get('token'))}` : ''));
+            if (!expectedState || kakaoParams.get('state') !== expectedState) {
+                window.showToast('로그인 요청을 확인할 수 없습니다. 다시 시도해 주세요.');
+            } else {
+                fetch('https://us-central1-jero-a0ce0.cloudfunctions.net/exchangeKakao', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: kakaoCode, redirectUri: 'https://jbusinessero-ctrl.github.io/doolimoa_app/' })
+                }).then(async response => {
+                    const result = await response.json();
+                    if (!response.ok || !result.customToken) throw new Error('카카오 로그인 확인에 실패했습니다.');
+                    await signInWithCustomToken(auth, result.customToken);
+                }).catch(error => window.showToast(error.message || '카카오 로그인을 완료하지 못했습니다.'));
+            }
+        }
         onAuthStateChanged(auth, async (user) => {
             window.firebaseUser = user;
             window.updateDateUI();
