@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.webkit.CookieManager
@@ -146,10 +147,19 @@ class MainActivity : Activity() {
             val callback: (com.kakao.sdk.auth.model.OAuthToken?, Throwable?) -> Unit = { token, error ->
                 when {
                     error != null && UserApiClient.instance.isKakaoTalkLoginAvailable(this@MainActivity) -> {
-                        UserApiClient.instance.loginWithKakaoAccount(this@MainActivity) { accountToken, accountError -> handleLogin(accountToken, accountError) }
+                        Log.w("DoolimoaAuth", "KakaoTalk app login failed; trying account login", error)
+                        UserApiClient.instance.loginWithKakaoAccount(this@MainActivity) { accountToken, accountError ->
+                            if (accountError != null || accountToken == null) {
+                                reportNativeLoginFailure(
+                                    "카카오톡 앱 로그인", error,
+                                    "카카오 계정 로그인", accountError ?: IllegalStateException("인증 토큰을 받지 못했습니다.")
+                                )
+                            } else exchangeKakaoToken(accountToken.accessToken)
+                        }
                     }
-                    error != null -> handleLogin(null, error)
+                    error != null -> reportNativeLoginFailure("카카오 계정 로그인", error)
                     token != null -> exchangeKakaoToken(token.accessToken)
+                    else -> reportNativeLoginFailure("카카오 로그인", IllegalStateException("인증 토큰을 받지 못했습니다."))
                 }
             }
             if (UserApiClient.instance.isKakaoTalkLoginAvailable(this@MainActivity)) UserApiClient.instance.loginWithKakaoTalk(this@MainActivity, callback = callback)
@@ -183,12 +193,19 @@ class MainActivity : Activity() {
         @JavascriptInterface fun clearPendingInvite() { prefs.edit().remove("pending_invite").apply() }
     }
 
-    private fun handleLogin(token: com.kakao.sdk.auth.model.OAuthToken?, error: Throwable?) {
-        if (error != null || token == null) {
-            notifyJs("window.onNativeAuthError('카카오 로그인이 취소되었거나 실패했습니다.')")
-            return
+    private fun reportNativeLoginFailure(stage: String, error: Throwable, fallbackStage: String? = null, fallbackError: Throwable? = null) {
+        Log.e("DoolimoaAuth", "$stage failed (${error.javaClass.simpleName}): ${error.message}", error)
+        if (fallbackError != null) Log.e("DoolimoaAuth", "$fallbackStage failed (${fallbackError.javaClass.simpleName}): ${fallbackError.message}", fallbackError)
+        val detail = buildString {
+            append("$stage 실패: ${error.javaClass.simpleName}")
+            error.message?.takeIf { it.isNotBlank() }?.let { append(" — ").append(it) }
+            if (fallbackError != null) {
+                append("; $fallbackStage 실패: ${fallbackError.javaClass.simpleName}")
+                fallbackError.message?.takeIf { it.isNotBlank() }?.let { append(" — ").append(it) }
+            }
+            append(". 카카오 디벨로퍼스의 Android 패키지명과 앱 키, 현재 앱 서명 키 해시를 확인해 주세요.")
         }
-        exchangeKakaoToken(token.accessToken)
+        notifyJs("window.onNativeAuthError(${JSONObject.quote(detail)})")
     }
 
     private fun exchangeKakaoToken(accessToken: String) {
