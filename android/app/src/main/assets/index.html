@@ -304,6 +304,12 @@
                         <div><label class="block font-bold mb-1">아내 별명</label><input type="text" id="wifeNameInput" class="w-full p-2 bg-white rounded-xl border font-bold"></div>
                         <button onclick="saveCoupleNames()" class="w-full py-2 bg-rose-500 text-white rounded-xl font-bold shadow-md">별명 저장</button>
                     </div>
+                    <div class="p-4 bg-amber-50/80 border border-amber-100 rounded-2xl space-y-2">
+                        <span class="font-bold block">파트너 초대</span>
+                        <p class="text-[11px] leading-5 text-slate-500">초대 링크는 24시간 동안 유효하며 한 번만 사용할 수 있습니다.</p>
+                        <button onclick="createAndShareInvite('system')" class="w-full py-2.5 bg-slate-800 text-white rounded-xl font-bold">초대 링크 공유</button>
+                        <button onclick="createAndShareInvite('kakao')" class="w-full py-2.5 bg-[#FEE500] text-slate-900 rounded-xl font-bold">카카오톡으로 초대</button>
+                    </div>
                     <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
                         <span class="font-bold block">파트너 연결</span>
                         <p class="text-[11px] leading-5 text-slate-500">연결을 해제하면 현재 공유 가계부는 방장에게 남고, 나간 사용자는 새 빈 가계부를 받습니다.</p>
@@ -1134,6 +1140,13 @@
                 const url = `${window.INVITE_BASE_URL}?token=${encodeURIComponent(token)}`;
                 const message = `둘이모아 가계부 초대 링크입니다. 24시간 이내에 앱에서 열어 연결해 주세요. ${url}`;
                 if (method === 'kakao' && window.NativeAuth?.shareKakao) window.NativeAuth.shareKakao(url);
+                else if (method === 'kakao' && window.Kakao?.Share?.sendDefault) {
+                    window.Kakao.Share.sendDefault({
+                        objectType: 'text',
+                        text: message,
+                        link: { webUrl: url, mobileWebUrl: url }
+                    });
+                }
                 else if (window.NativeAuth?.shareText) window.NativeAuth.shareText(message);
                 else if (navigator.share) await navigator.share({ title: '둘이모아 가계부 초대', text: message, url });
                 else { await navigator.clipboard.writeText(url); window.showToast('초대 링크를 복사했습니다.'); }
