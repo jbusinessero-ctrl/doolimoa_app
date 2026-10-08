@@ -312,6 +312,7 @@
         <form onsubmit="saveLedgerName(event)" class="bg-white/90 rounded-3xl max-w-sm w-full shadow-2xl border border-white p-6 space-y-4">
             <div><h3 class="text-lg font-black text-slate-800">가계부 이름 변경</h3><p class="mt-1 text-xs text-slate-500">함께 사용하는 사람에게도 같은 이름으로 표시됩니다.</p></div>
             <input id="ledgerNameInput" type="text" maxlength="60" required class="w-full p-3 rounded-xl bg-white border border-slate-200 text-sm font-bold" placeholder="가계부 이름">
+            <p id="ledgerNameSaveError" class="hidden text-xs leading-5 text-rose-600" role="alert"></p>
             <div class="flex justify-end gap-2"><button type="button" onclick="closeModal('ledgerNameModal')" class="px-4 py-2 rounded-xl bg-slate-100 text-xs font-bold">취소</button><button type="submit" class="px-5 py-2 rounded-xl bg-rose-500 text-white text-xs font-bold">저장</button></div>
         </form>
     </div>
@@ -1008,6 +1009,8 @@
 
         window.openLedgerNameModal = () => {
             document.getElementById('ledgerNameInput').value = window.ledgerName || '둘이모아 가계부';
+            document.getElementById('ledgerNameSaveError').textContent = '';
+            document.getElementById('ledgerNameSaveError').classList.add('hidden');
             openModal('ledgerNameModal');
         };
 
@@ -1018,6 +1021,7 @@
             const previousName = window.ledgerName;
             window.ledgerName = nextName;
             window.updateLedgerNameUI();
+            window.lastLedgerSaveError = '';
             const saved = await window.saveStateToFirestore();
             if (saved) {
                 closeModal('ledgerNameModal');
@@ -1025,6 +1029,9 @@
             } else {
                 window.ledgerName = previousName;
                 window.updateLedgerNameUI();
+                const error = document.getElementById('ledgerNameSaveError');
+                error.textContent = window.lastLedgerSaveError || '저장에 실패했습니다. 잠시 후 다시 시도해 주세요.';
+                error.classList.remove('hidden');
             }
         };
 
@@ -1127,12 +1134,23 @@
                     window.NativeAuth.shareKakao(url);
                     closeModal('inviteModal');
                 }
-                else if (method === 'kakao' && window.Kakao?.Share?.sendDefault) {
-                    window.Kakao.Share.sendDefault({
-                        objectType: 'text',
-                        text: message,
-                        link: { webUrl: url, mobileWebUrl: url }
-                    });
+                else if (method === 'kakao') {
+                    if (!window.Kakao?.isInitialized?.() || !window.Kakao?.Share?.sendDefault) {
+                        throw new Error('카카오 공유 SDK가 초기화되지 않았습니다. 페이지를 새로고침한 뒤 다시 시도해 주세요.');
+                    }
+                    try {
+                        await Promise.resolve(window.Kakao.Share.sendDefault({
+                            objectType: 'text',
+                            text: message,
+                            link: { webUrl: url, mobileWebUrl: url }
+                        }));
+                    } catch (error) {
+                        console.error('Kakao share failed', { code: error?.code, message: error?.message, url });
+                        if (String(error?.code) === '4002' || String(error?.code) === '4041') {
+                            throw new Error(`카카오 공유 설정 오류 (${error.code}): 카카오 디벨로퍼스의 제품 링크에 jbusinessero-ctrl.github.io 도메인이 등록되어 있는지 확인해 주세요.`);
+                        }
+                        throw new Error(`카카오톡 공유에 실패했습니다${error?.code ? ` (${error.code})` : ''}. ${error?.message || '잠시 후 다시 시도해 주세요.'}`);
+                    }
                     closeModal('inviteModal');
                 }
                 else if (window.NativeAuth?.shareText) {
@@ -1235,6 +1253,7 @@
                 return true;
             } catch (error) {
                 console.error('Secure save failed', error);
+                window.lastLedgerSaveError = error.message || '서버 저장에 실패했습니다.';
                 if (error.code === 'functions/aborted') await window.loadSecureLedger().catch(() => {});
                 window.showToast(error.message);
                 return false;
