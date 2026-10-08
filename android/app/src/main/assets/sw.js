@@ -1,8 +1,9 @@
 // PWABuilder 서비스 워커 오프라인 지원 스크립트 (안전성 강화 버전)
-const CACHE_NAME = 'doolimoa-v2';
+const CACHE_NAME = 'doolimoa-v3-secure-auth';
 const ASSETS = [
     './',
     './index.html',
+    './invite.html',
     './manifest.json',
     './doolimoa_app_icon_512x512.png'
 ];

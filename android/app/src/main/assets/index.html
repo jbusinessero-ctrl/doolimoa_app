@@ -101,14 +101,16 @@
                 <img src="doolimoa_app_icon_512x512.png" alt="둘이모아 로고" class="mx-auto mb-5 h-24 w-24 rounded-[26px] shadow-xl">
                 <h1 class="text-2xl font-black tracking-tight text-slate-800">둘이모아</h1>
                 <p class="mt-2 text-sm text-slate-500">둘이서 함께 모으는 우리 가계부</p>
+                <button id="kakaoLoginButton" onclick="startKakaoLogin()" class="mt-6 w-full py-3 rounded-2xl bg-[#FEE500] text-[#191919] font-extrabold shadow">카카오로 시작하기</button>
+                <p id="loginHelpText" class="mt-3 text-xs leading-5 text-slate-400">카카오 계정으로 안전하게 로그인합니다.</p>
             </div>
             <div id="roomSetupStep" class="onboarding-step" hidden>
-                <h2 class="text-lg font-extrabold text-slate-800">함께 쓸 가계부 연결</h2>
-                <p class="mt-2 mb-5 text-sm leading-6 text-slate-500">새 코드를 만들거나 배우자에게 받은 코드를 입력하세요.</p>
-                <button onclick="createNewRoomCode()" class="w-full py-3 rounded-2xl bg-slate-900 text-white font-extrabold">새 가계부 코드 만들기</button>
-                <div class="my-4 flex items-center gap-3 text-xs text-slate-400"><span class="h-px flex-1 bg-slate-200"></span>또는 기존 가계부 참여<span class="h-px flex-1 bg-slate-200"></span></div>
-                <label for="inputRoomCode" class="mb-1.5 block text-xs font-bold text-slate-600">배우자에게 받은 코드</label>
-                <div class="flex gap-2"><input type="text" id="inputRoomCode" placeholder="예: MONG-8821" class="min-w-0 flex-1 p-3 bg-white border border-slate-200 rounded-xl font-mono font-bold text-center uppercase"><button onclick="joinExistingRoomCode()" class="px-5 py-3 bg-rose-500 text-white rounded-xl font-bold">참여</button></div>
+                <h2 class="text-lg font-extrabold text-slate-800">가계부 연결</h2>
+                <p class="mt-2 mb-5 text-sm leading-6 text-slate-500">새 가계부를 시작하거나 배우자에게 받은 초대 링크로 연결하세요.</p>
+                <button onclick="createNewRoomCode()" class="w-full py-3 rounded-2xl bg-slate-900 text-white font-extrabold">내 가계부 시작</button>
+                <div class="my-4 flex items-center gap-3 text-xs text-slate-400"><span class="h-px flex-1 bg-slate-200"></span>또는 초대 링크 연결<span class="h-px flex-1 bg-slate-200"></span></div>
+                <label for="inputRoomCode" class="mb-1.5 block text-xs font-bold text-slate-600">배우자에게 받은 초대 링크/토큰</label>
+                <div class="flex gap-2"><input type="text" id="inputRoomCode" placeholder="초대 링크를 붙여넣으세요" class="min-w-0 flex-1 p-3 bg-white border border-slate-200 rounded-xl text-xs"><button onclick="joinExistingRoomCode()" class="px-5 py-3 bg-rose-500 text-white rounded-xl font-bold">연결</button></div>
             </div>
         </div>
     </section>
@@ -127,7 +129,7 @@
                 <div>
                     <h1 id="headerTitle" class="header-title text-base sm:text-lg font-extrabold text-slate-800"><span id="headerCoupleNames" class="header-title-names">남편 ♥ 아내</span><span>가계부</span></h1>
                     <span id="syncStatusBadge" aria-label="클라우드 연결 상태" class="inline-flex items-center text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold border border-emerald-200">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 pulse-dot"></span> 실시간 연결됨
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 pulse-dot"></span> 보안 서버 연결
                     </span>
                 </div>
             </div>
@@ -301,6 +303,11 @@
                         <div><label class="block font-bold mb-1">아내 별명</label><input type="text" id="wifeNameInput" class="w-full p-2 bg-white rounded-xl border font-bold"></div>
                         <button onclick="saveCoupleNames()" class="w-full py-2 bg-rose-500 text-white rounded-xl font-bold shadow-md">별명 저장</button>
                     </div>
+                    <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                        <span class="font-bold block">파트너 연결</span>
+                        <p class="text-[11px] leading-5 text-slate-500">연결을 해제하면 현재 공유 가계부는 방장에게 남고, 나간 사용자는 새 빈 가계부를 받습니다.</p>
+                        <button onclick="disconnectPartner()" class="w-full py-2 bg-white border border-rose-200 text-rose-700 rounded-xl font-bold">파트너 연결 해제</button>
+                    </div>
                 </div>
             </div>
             <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end"><button onclick="closeModal('settingsModal')" class="px-5 py-2 bg-slate-800 text-white rounded-xl text-xs font-bold">확인</button></div>
@@ -311,8 +318,8 @@
         <div class="bg-white/85 rounded-3xl max-w-md w-full shadow-2xl border border-white p-6 space-y-5">
             <div class="text-center space-y-1"><h3 class="text-xl font-black text-slate-800">신혼부부 공동 가계부</h3><p class="text-xs text-slate-500">배우자와의 실시간 공유 참여 코드</p></div>
             <div class="space-y-3 text-xs">
-                <div class="p-4 liquid-pill border rounded-2xl space-y-2"><span class="font-bold block">새로운 공유 시작</span><button onclick="createNewRoomCode()" class="w-full py-2.5 bg-slate-800 text-white rounded-xl font-bold">새 참여 코드 생성</button></div>
-                <div class="p-4 bg-rose-50/70 border border-rose-100 rounded-2xl space-y-2"><span class="font-bold block">배우자의 참여 코드 입력</span><div class="flex gap-2"><input type="text" id="roomCodeModalInput" placeholder="예: MONG-8821" class="w-full p-2.5 bg-white border rounded-xl font-mono font-bold text-center uppercase"><button onclick="joinExistingRoomCode('roomCodeModalInput')" class="px-5 py-2.5 bg-rose-500 text-white rounded-xl font-bold whitespace-nowrap">입장</button></div></div>
+                <div class="p-4 liquid-pill border rounded-2xl space-y-2"><span class="font-bold block">파트너 초대</span><p class="text-[11px] text-slate-500">초대 링크는 24시간 동안 유효하며 한 번만 사용할 수 있습니다.</p><button onclick="createAndShareInvite('system')" class="w-full py-2.5 bg-slate-800 text-white rounded-xl font-bold">초대 링크 공유</button><button onclick="createAndShareInvite('kakao')" class="w-full py-2.5 bg-[#FEE500] text-slate-900 rounded-xl font-bold">카카오톡으로 공유</button></div>
+                <div class="p-4 bg-rose-50/70 border border-rose-100 rounded-2xl space-y-2"><span class="font-bold block">초대 링크로 연결</span><div class="flex gap-2"><input type="text" id="roomCodeModalInput" placeholder="초대 링크/토큰" class="w-full min-w-0 p-2.5 bg-white border rounded-xl text-xs"><button onclick="joinExistingRoomCode('roomCodeModalInput')" class="px-5 py-2.5 bg-rose-500 text-white rounded-xl font-bold whitespace-nowrap">연결</button></div></div>
             </div>
             <div id="roomModalCloseContainer" class="text-center hidden"><button onclick="closeModal('roomCodeModal')" class="text-xs text-slate-500 underline">닫기</button></div>
         </div>
@@ -405,7 +412,7 @@
         window.categoryBudgets = {};
         window.overallBudget = 0;
         window.transactions = [];
-        window.activeRoomCode = localStorage.getItem('shinhon_room_code') || '';
+        window.activeRoomCode = '';
         window.budgetExpanded = false;
         window.transactionVisibleCount = 7;
         window.transactionListContext = '';
@@ -439,8 +446,7 @@
         };
 
         window.updateCodeHeaderUI = () => {
-            document.getElementById('headerCodeDisplay').textContent = `코드: ${window.activeRoomCode || '----'}`;
-            ['inputRoomCode', 'roomCodeModalInput'].forEach(id => { const inp = document.getElementById(id); if (inp && window.activeRoomCode) inp.value = window.activeRoomCode; });
+            document.getElementById('headerCodeDisplay').textContent = window.activeRoomCode ? '공유 가계부' : '가계부 연결';
         };
 
         window.showRoomSetup = () => {
@@ -1032,6 +1038,16 @@
             window.showToast(saved ? '커플 별명이 저장되었습니다.' : '기기에 별명을 저장했습니다. 인터넷 연결 후 다시 저장해 주세요.');
         };
 
+        window.disconnectPartner = async () => {
+            if (!window.confirm('파트너 연결을 해제할까요? 공유 데이터는 가계부 방장에게 남고, 다른 사용자는 새 빈 가계부를 받습니다.')) return;
+            try {
+                await window.callLedgerApi('ledger.disconnect');
+                await window.loadSecureLedger();
+                closeModal('settingsModal');
+                window.showToast('파트너 연결을 해제했습니다.');
+            } catch (error) { window.showToast(error.message || '연결을 해제하지 못했습니다.'); }
+        };
+
         window.openBudgetModal = () => {
             const container = document.getElementById('budgetInputsContainer'); if (!container) return; container.innerHTML = '';
             const allCats = [...window.CATEGORIES.expense, ...window.CATEGORIES.fixed_expense];
@@ -1065,32 +1081,72 @@
             window.saveStateToFirestore(); closeModal('budgetModal'); window.renderDashboard(); window.showToast('목표 예산이 저장되었습니다.');
         };
 
-        window.createNewRoomCode = () => {
-            const code = 'MONG-' + Math.floor(1000 + Math.random() * 9000);
-            window.subscribeToRoom(code); closeModal('roomCodeModal');
-            document.getElementById('onboardingScreen').classList.add('hidden');
-            window.showToast(`새 코드가 생성되었습니다: ${code}`);
+        window.createNewRoomCode = async () => {
+            if (!window.firebaseUser) return window.showToast('먼저 카카오 로그인을 해주세요.');
+            try {
+                await window.loadSecureLedger();
+                localStorage.setItem('doolimoa_setup_done', 'true');
+                document.getElementById('onboardingScreen').classList.add('hidden');
+                closeModal('roomCodeModal');
+            } catch (error) { window.showToast(error.message || '가계부를 불러오지 못했습니다.'); }
         };
 
-        window.joinExistingRoomCode = (inputId = 'inputRoomCode') => {
+        window.joinExistingRoomCode = async (inputId = 'inputRoomCode') => {
             const input = document.getElementById(inputId);
-            const code = (input?.value || '').trim().toUpperCase();
-            if (!code) { input?.focus(); window.showToast('참여 코드를 입력해 주세요.'); return; }
-            window.subscribeToRoom(code); closeModal('roomCodeModal');
-            document.getElementById('onboardingScreen').classList.add('hidden');
-            window.showToast(`[${code}] 가계부에 연결되었습니다.`);
+            const raw = (input?.value || '').trim();
+            const token = window.extractInviteToken(raw);
+            if (!token) { input?.focus(); window.showToast('유효한 초대 링크 또는 토큰을 입력해 주세요.'); return; }
+            if (window.pendingInviteProcessing) return;
+            if (!window.firebaseUser) { window.pendingInviteToken = token; return window.startKakaoLogin(); }
+            window.pendingInviteProcessing = true;
+            try {
+                const preview = await window.callLedgerApi('invite.preview', { token });
+                const hasCurrentLedger = !!preview.currentLedgerId;
+                if (hasCurrentLedger && !preview.currentLedgerCanReplace) {
+                    window.alert(`${preview.ownerName}님의 가계부에 연결할 수 없습니다. 현재 가계부가 본인만 사용하는 가계부가 아니어서 다른 구성원의 데이터를 보호했습니다.`);
+                    return;
+                }
+                const prompt = hasCurrentLedger && preview.currentLedgerHasData
+                    ? `주의: ${preview.ownerName}님의 가계부에 연결하면 현재 개인 가계부의 지출·수입·자산 데이터가 삭제됩니다. 계속하시겠습니까?`
+                    : hasCurrentLedger
+                        ? `${preview.ownerName}님의 가계부에 연결하시겠습니까? 현재 비어 있는 개인 가계부는 연결 과정에서 제거됩니다.`
+                        : `${preview.ownerName}님의 가계부에 연결하시겠습니까?`;
+                if (!window.confirm(prompt)) return;
+                await window.callLedgerApi('invite.accept', { token, confirmDeleteCurrentLedger: !!preview.currentLedgerHasData });
+                window.NativeAuth?.clearPendingInvite();
+                window.pendingInviteToken = null;
+                localStorage.setItem('doolimoa_setup_done', 'true');
+                window.activeRoomCode = '';
+                localStorage.removeItem('shinhon_room_code');
+                await window.loadSecureLedger();
+                document.getElementById('onboardingScreen').classList.add('hidden');
+                closeModal('roomCodeModal');
+                window.showToast('파트너 가계부에 연결되었습니다.');
+            } catch (error) { window.showToast(error.message || '초대 링크를 사용할 수 없습니다.'); }
+            finally { window.pendingInviteProcessing = false; }
         };
 
-        window.copyInviteCode = () => { if (window.activeRoomCode) { navigator.clipboard.writeText(window.activeRoomCode); window.showToast('코드가 복사되었습니다.'); } };
+        window.copyInviteCode = () => window.createAndShareInvite('system');
+        window.createAndShareInvite = async (method = 'system') => {
+            try {
+                const { token } = await window.callLedgerApi('invite.create');
+                const url = `${window.INVITE_BASE_URL}?token=${encodeURIComponent(token)}`;
+                const message = `둘이모아 가계부 초대 링크입니다. 24시간 이내에 앱에서 열어 연결해 주세요. ${url}`;
+                if (method === 'kakao' && window.NativeAuth?.shareKakao) window.NativeAuth.shareKakao(url);
+                else if (window.NativeAuth?.shareText) window.NativeAuth.shareText(message);
+                else if (navigator.share) await navigator.share({ title: '둘이모아 가계부 초대', text: message, url });
+                else { await navigator.clipboard.writeText(url); window.showToast('초대 링크를 복사했습니다.'); }
+            } catch (error) { window.showToast(error.message || '초대 링크를 만들지 못했습니다.'); }
+        };
         window.showToast = (msg) => { const t = document.getElementById('toast'); document.getElementById('toastMessage').textContent = msg; t.classList.remove('hidden'); setTimeout(() => t.classList.add('hidden'), 2500); };
         window.exportToCSV = () => { window.showToast('CSV 내보내기가 완료되었습니다.'); };
     </script>
 
-    <!-- Safe Original Single-Path Firebase Sync Integration -->
+    <!-- Authenticated callable API only. The client does not import Firestore. -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-functions.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBLE0RO9_QbTIehRPlUMMftVIQCUkgs4o8",
@@ -1101,107 +1157,113 @@
             appId: "1:634637692017:web:2fe49878a6e6bb6d4d3fd0"
         };
 
-        // CRITICAL GUARDRAIL: Original immutable App ID and Database collection path structure.
-        // DO NOT MODIFY THIS PATH IN FUTURE EDITS: artifacts/shinhon-mongdol-ttanggu/public/data/ledgers/{ROOM_CODE}
-        const ORIGINAL_APP_ID = 'shinhon-mongdol-ttanggu';
-        let app, db, auth, unsubscribe = null;
-
-        async function initFirebase() {
-            try {
-                app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-                await signInAnonymously(auth);
-
-                window.activeRoomCode = localStorage.getItem('shinhon_room_code') || '';
-                if (window.activeRoomCode) window.subscribeToRoom(window.activeRoomCode);
-                window.updateCodeHeaderUI(); window.updateNamesUI(); window.renderDashboard(); window.renderTransactions(); window.renderAssets();
-            } catch (e) {
-                console.warn("Offline fallback mode:", e);
-                window.updateCodeHeaderUI(); window.updateNamesUI(); window.renderDashboard(); window.renderTransactions(); window.renderAssets();
-            }
-        }
-
-        window.subscribeToRoom = (code) => {
-            if (!code) return;
-            window.activeRoomCode = code.toUpperCase();
-            localStorage.setItem('shinhon_room_code', window.activeRoomCode);
-            window.updateCodeHeaderUI();
-
-            if (!db) return;
-            if (unsubscribe) unsubscribe();
-
-            // Strictly restored original path
-            const originalDocRef = doc(db, 'artifacts', ORIGINAL_APP_ID, 'public', 'data', 'ledgers', window.activeRoomCode);
-
-            unsubscribe = onSnapshot(originalDocRef, (snap) => {
-                if (snap.exists() && snap.data()) {
-                    const snapData = snap.data();
-                    if (snapData.transactions && Array.isArray(snapData.transactions)) window.transactions = snapData.transactions;
-                    if (snapData.categoryBudgets) window.categoryBudgets = snapData.categoryBudgets;
-                    if (snapData.overallBudget !== undefined) window.overallBudget = snapData.overallBudget;
-                    if (snapData.categories) window.CATEGORIES = snapData.categories;
-                    if (snapData.paymentMethods) window.paymentMethods = snapData.paymentMethods;
-                    let migrateLegacyNames = false;
-                    if (window.pendingCoupleNamesSync) {
-                        window.husbandName = localStorage.getItem('shinhon_husband_name') || window.husbandName || '남편';
-                        window.wifeName = localStorage.getItem('shinhon_wife_name') || window.wifeName || '아내';
-                    } else if (snapData.husbandName) {
-                        window.husbandName = snapData.husbandName === '몽돌' ? '남편' : snapData.husbandName;
-                        localStorage.setItem('shinhon_husband_name', window.husbandName);
-                        migrateLegacyNames ||= snapData.husbandName === '몽돌';
-                    }
-                    if (!window.pendingCoupleNamesSync && snapData.wifeName) {
-                        window.wifeName = snapData.wifeName === '땡구' ? '아내' : snapData.wifeName;
-                        localStorage.setItem('shinhon_wife_name', window.wifeName);
-                        migrateLegacyNames ||= snapData.wifeName === '땡구';
-                    }
-                    if (snapData.assets) window.assets = snapData.assets;
-
-                    window.updateNamesUI(); window.renderDashboard(); window.renderTransactions(); window.renderAssets();
-                    if (migrateLegacyNames) window.saveStateToFirestore();
-                    if (window.pendingCoupleNamesSync) {
-                        window.saveStateToFirestore().then(saved => { if (saved) window.pendingCoupleNamesSync = false; });
-                    }
-                    if (window.currentView === 'calendar') window.renderCalendar();
-                }
-            });
+        const app = initializeApp(firebaseConfig);
+        localStorage.removeItem('shinhon_room_code');
+        const auth = getAuth(app);
+        const functions = getFunctions(app, 'us-central1');
+        const ledgerCallable = httpsCallable(functions, 'ledgerApi');
+        window.INVITE_BASE_URL = 'https://jbusinessero-ctrl.github.io/doolimoa_app/invite.html';
+        window.firebaseUser = null;
+        window.extractInviteToken = (raw) => {
+            if (!raw) return '';
+            try { const url = new URL(raw); return url.searchParams.get('token') || ''; }
+            catch (_) { return raw.length >= 32 ? raw : ''; }
         };
-
-        window.saveStateToFirestore = async () => {
-            if (!window.activeRoomCode || !db) return false;
-            try {
-                const payload = {
-                    transactions: window.transactions,
-                    categoryBudgets: window.categoryBudgets,
-                    overallBudget: window.overallBudget,
-                    categories: window.CATEGORIES,
-                    paymentMethods: window.paymentMethods,
-                    husbandName: window.husbandName,
-                    wifeName: window.wifeName,
-                    assets: window.assets,
-                    updatedAt: Date.now()
+        window.setPendingInviteToken = (token) => {
+            if (!token) return;
+            window.pendingInviteToken = token;
+            const input = document.getElementById('inputRoomCode');
+            if (input) input.value = token;
+            if (window.firebaseUser) window.joinExistingRoomCode('inputRoomCode');
+        };
+        window.callLedgerApi = async (action, data = {}) => {
+            if (!auth.currentUser) throw new Error('카카오 로그인이 필요합니다.');
+            try { return (await ledgerCallable({ action, ...data })).data; }
+            catch (error) {
+                const messages = {
+                    'functions/permission-denied': '가계부 구성원이 아니거나 접근 권한이 만료되었습니다.',
+                    'functions/failed-precondition': error.message || '요청을 처리할 수 없습니다.',
+                    'functions/resource-exhausted': error.message || '요청 한도를 초과했습니다.',
+                    'functions/not-found': '초대 링크가 만료되었거나 이미 사용되었습니다.'
                 };
-
-                // Strictly write to original path
-                const originalDocRef = doc(db, 'artifacts', ORIGINAL_APP_ID, 'public', 'data', 'ledgers', window.activeRoomCode);
-                await setDoc(originalDocRef, payload, { merge: true });
-                if (window.pendingCoupleNamesSync) {
-                    window.pendingCoupleNamesSync = false;
-                    localStorage.removeItem('shinhon_pending_couple_names_sync');
-                }
-                return true;
-            } catch (e) { console.error("Cloud Save error:", e); return false; }
+                throw new Error(messages[error.code] || error.message || '서버 요청에 실패했습니다.');
+            }
         };
-
-        window.addEventListener('load', () => {
+        window.loadSecureLedger = async () => {
+            const result = await window.callLedgerApi('ledger.read');
+            const data = result.data || {};
+            window.activeRoomCode = result.ledgerId;
+            window.lastLedgerRevision = result.revision || 1;
+            window.transactions = Array.isArray(data.transactions) ? data.transactions : [];
+            window.categoryBudgets = data.categoryBudgets || {};
+            window.overallBudget = data.overallBudget || 0;
+            if (data.categories) window.CATEGORIES = data.categories;
+            if (data.paymentMethods) window.paymentMethods = data.paymentMethods;
+            if (data.assets) window.assets = data.assets;
+            const profile = result.profile || {};
+            window.husbandName = profile.husbandName || '남편';
+            window.wifeName = profile.wifeName || '아내';
+            localStorage.setItem('shinhon_husband_name', window.husbandName);
+            localStorage.setItem('shinhon_wife_name', window.wifeName);
+            window.updateCodeHeaderUI(); window.updateNamesUI(); window.renderDashboard(); window.renderTransactions(); window.renderAssets();
+            if (window.currentView === 'calendar') window.renderCalendar();
+        };
+        window.saveStateToFirestore = async () => {
+            if (!auth.currentUser) return false;
+            try {
+                const data = { transactions: window.transactions, categoryBudgets: window.categoryBudgets, overallBudget: window.overallBudget, categories: window.CATEGORIES, paymentMethods: window.paymentMethods, husbandName: window.husbandName, wifeName: window.wifeName, assets: window.assets };
+                window.isSavingSecureLedger = true;
+                await window.callLedgerApi('ledger.write', { data, expectedRevision: window.lastLedgerRevision || 1 });
+                window.lastLedgerRevision = (window.lastLedgerRevision || 0) + 1;
+                window.pendingCoupleNamesSync = false;
+                localStorage.removeItem('shinhon_pending_couple_names_sync');
+                return true;
+            } catch (error) {
+                console.error('Secure save failed', error);
+                if (error.code === 'functions/aborted') await window.loadSecureLedger().catch(() => {});
+                window.showToast(error.message);
+                return false;
+            } finally { window.isSavingSecureLedger = false; }
+        };
+        window.startKakaoLogin = () => {
+            if (!window.NativeAuth?.loginWithKakao) {
+                window.showToast('카카오 로그인은 Android 앱에서 이용할 수 있습니다.');
+                return;
+            }
+            window.NativeAuth.loginWithKakao();
+        };
+        window.onNativeFirebaseCustomToken = async (customToken) => {
+            try { await signInWithCustomToken(auth, customToken); }
+            catch (error) { window.showToast(error.message || '로그인을 완료하지 못했습니다.'); }
+        };
+        window.onNativeAuthError = (message) => window.showToast(message || '카카오 로그인을 완료하지 못했습니다.');
+        onAuthStateChanged(auth, async (user) => {
+            window.firebaseUser = user;
             window.updateDateUI();
-            initFirebase();
-            window.setTimeout(() => {
-                if (window.activeRoomCode) document.getElementById('onboardingScreen').classList.add('hidden');
-                else window.showRoomSetup();
-            }, 1100);
+            if (user) {
+                try {
+                    await window.loadSecureLedger();
+                    const pending = window.pendingInviteToken || new URLSearchParams(location.search).get('token');
+                    if (pending) { document.getElementById('inputRoomCode').value = pending; window.joinExistingRoomCode('inputRoomCode'); }
+                    else {
+                        const claims = await user.getIdTokenResult();
+                        if (claims.claims.isNewUser && localStorage.getItem('doolimoa_setup_done') !== 'true') window.showRoomSetup();
+                        else document.getElementById('onboardingScreen').classList.add('hidden');
+                    }
+                } catch (error) { window.showRoomSetup(); window.showToast(error.message); }
+            } else {
+                window.updateNamesUI(); window.renderDashboard(); window.renderTransactions(); window.renderAssets();
+                document.getElementById('brandingStep').hidden = false;
+                document.getElementById('roomSetupStep').hidden = true;
+            }
         });
+        window.setInterval(async () => {
+            if (!auth.currentUser || !window.activeRoomCode || window.isSavingSecureLedger) return;
+            try {
+                const current = await window.callLedgerApi('ledger.read');
+                if (current.revision !== window.lastLedgerRevision) await window.loadSecureLedger();
+            } catch (error) { console.warn('Secure refresh failed', error); }
+        }, 12000);
     </script>
 </body>
 </html>

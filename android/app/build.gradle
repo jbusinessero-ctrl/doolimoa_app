@@ -2,15 +2,35 @@ plugins {
     id 'com.android.application'
 }
 
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withInputStream { localProperties.load(it) }
+}
+def kakaoNativeKey = providers.gradleProperty('kakaoNativeKey')
+        .orElse(localProperties.getProperty('kakaoNativeKey', ''))
+        .get()
+def kakaoExchangeUrl = providers.gradleProperty('kakaoExchangeUrl').orElse('https://us-central1-jero-a0ce0.cloudfunctions.net/exchangeKakao').get()
+
 android {
     namespace 'com.doolimoa.app'
-    compileSdk 35
+    compileSdk 36
 
     defaultConfig {
         applicationId 'com.doolimoa.app'
         minSdk 24
         targetSdk 36
-        versionCode 5
-        versionName '1.0.5'
+        versionCode 4
+        versionName '1.0.4'
+        manifestPlaceholders = [KAKAO_NATIVE_KEY: kakaoNativeKey]
+        buildConfigField 'String', 'KAKAO_NATIVE_KEY', '"' + kakaoNativeKey + '"'
+        buildConfigField 'String', 'KAKAO_EXCHANGE_URL', '"' + kakaoExchangeUrl + '"'
     }
+    buildFeatures { buildConfig true }
+}
+
+dependencies {
+    implementation 'com.kakao.sdk:v2-user:2.25.0'
+    implementation 'com.kakao.sdk:v2-share:2.25.0'
+    implementation 'com.android.installreferrer:installreferrer:2.2'
 }

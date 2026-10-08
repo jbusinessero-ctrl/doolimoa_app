@@ -2,7 +2,11 @@
 
 이 Android 프로젝트는 저장소 안의 `app/src/main/assets/index.html`을 전체 화면 WebView로 표시합니다. 앱 ID는 웹 매니페스트에 맞춰 `com.doolimoa.app`으로 설정했습니다.
 
-웹 화면을 수정할 때는 프로젝트 루트의 `index.html`, `manifest.json`, `sw.js`, 아이콘을 수정한 뒤 Android의 `app/src/main/assets/`에도 같은 파일을 복사해 주세요.
+웹 화면을 수정할 때는 프로젝트 루트의 `index.html`, `invite.html`, `manifest.json`, `sw.js`, 아이콘을 수정한 뒤 Android의 `app/src/main/assets/`에도 같은 파일을 복사해 주세요.
+
+## Firebase 서버와 Kakao 로그인 설정
+
+보안 아키텍처와 Firebase 배포 절차는 저장소 루트의 [`SECURITY_SETUP.md`](../SECURITY_SETUP.md)를 확인하세요. Android용 Kakao 네이티브 앱 키는 `~/.gradle/gradle.properties`에 `kakaoNativeKey=...`로 저장합니다. Firebase 프로젝트/함수 URL은 현재 `jero-a0ce0`의 `us-central1`을 사용합니다. Kakao Developers에 Android 패키지명과 서명 키 해시를 등록해야 로그인할 수 있습니다.
 
 ## APK 빌드
 
