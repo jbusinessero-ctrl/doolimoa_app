@@ -303,7 +303,9 @@
     <div id="inviteModal" class="fixed inset-0 z-50 hidden bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4">
         <div class="bg-white/90 rounded-3xl max-w-md w-full shadow-2xl border border-white p-6 space-y-4">
             <div class="flex items-start justify-between gap-4"><div><h3 class="text-lg font-black text-slate-800">가계부 초대</h3><p class="mt-1 text-xs leading-5 text-slate-500">초대 링크는 24시간 동안 유효하며 한 번만 사용할 수 있습니다.</p></div><button type="button" onclick="closeModal('inviteModal')" aria-label="닫기" class="text-slate-400"><i class="fa-solid fa-xmark text-lg"></i></button></div>
-            <div class="space-y-2"><button onclick="createAndShareInvite('kakao')" class="w-full py-3 rounded-xl bg-[#FEE500] text-slate-900 font-extrabold"><i class="fa-solid fa-comment mr-1"></i>카카오톡으로 초대</button><button onclick="createAndShareInvite('system')" class="w-full py-3 rounded-xl bg-slate-800 text-white font-bold"><i class="fa-solid fa-arrow-up-from-bracket mr-1"></i>링크 공유</button></div>
+            <p id="inviteModalStatus" class="text-sm text-slate-600">초대 링크를 먼저 만든 뒤 원하는 방법으로 공유할 수 있습니다.</p>
+            <button id="createInviteButton" type="button" onclick="createAndShareInvite()" class="w-full py-3 rounded-xl bg-rose-500 text-white font-extrabold"><i class="fa-solid fa-link mr-1"></i>초대 링크 만들기</button>
+            <div id="inviteShareActions" class="hidden space-y-2"><button type="button" onclick="sharePreparedInvite('kakao')" class="w-full py-3 rounded-xl bg-[#FEE500] text-slate-900 font-extrabold"><i class="fa-solid fa-comment mr-1"></i>카카오톡으로 초대</button><button type="button" onclick="sharePreparedInvite('system')" class="w-full py-3 rounded-xl bg-slate-800 text-white font-bold"><i class="fa-solid fa-arrow-up-from-bracket mr-1"></i>링크 공유</button><button type="button" onclick="copyPreparedInvite()" class="w-full py-2 rounded-xl border border-slate-200 text-slate-700 text-sm font-bold"><i class="fa-regular fa-copy mr-1"></i>링크 복사</button></div>
             <p class="text-[10px] leading-4 text-slate-400">초대받은 사람이 링크를 열고 로그인하면 연결 확인 화면이 표시됩니다.</p>
         </div>
     </div>
@@ -1035,7 +1037,14 @@
             }
         };
 
-        window.openInviteModal = () => openModal('inviteModal');
+        window.openInviteModal = () => {
+            window.preparedInvite = null;
+            document.getElementById('inviteModalStatus').textContent = '초대 링크를 먼저 만든 뒤 원하는 방법으로 공유할 수 있습니다.';
+            document.getElementById('createInviteButton').classList.remove('hidden');
+            document.getElementById('createInviteButton').disabled = false;
+            document.getElementById('inviteShareActions').classList.add('hidden');
+            openModal('inviteModal');
+        };
 
         window.disconnectPartner = async () => {
             if (!window.confirm('공유 연결을 해제할까요? 공유 데이터는 가계부 소유자에게 남고, 연결을 해제한 사용자는 새 빈 가계부를 받습니다.')) return;
@@ -1124,49 +1133,75 @@
             finally { window.pendingInviteProcessing = false; }
         };
 
-        window.createAndShareInvite = async (method = 'system') => {
+        window.createAndShareInvite = async () => {
+            const button = document.getElementById('createInviteButton');
+            const status = document.getElementById('inviteModalStatus');
+            button.disabled = true;
+            button.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i>초대 링크 만드는 중...';
             try {
                 const { token } = await window.callLedgerApi('invite.create');
                 const url = `${window.INVITE_BASE_URL}?token=${encodeURIComponent(token)}`;
                 const title = window.ledgerName || '둘이모아 가계부';
                 const message = `${title} 초대 링크입니다. 24시간 이내에 열어 연결해 주세요. ${url}`;
-                if (method === 'kakao' && window.NativeAuth?.shareKakao) {
-                    window.NativeAuth.shareKakao(url);
-                    closeModal('inviteModal');
+                window.preparedInvite = { url, title, message };
+                status.textContent = '초대 링크가 준비됐습니다. 아래 버튼을 눌러 공유해 주세요.';
+                button.classList.add('hidden');
+                document.getElementById('inviteShareActions').classList.remove('hidden');
+            } catch (error) {
+                status.textContent = error.message || '초대 링크를 만들지 못했습니다.';
+                button.innerHTML = '<i class="fa-solid fa-link mr-1"></i>다시 시도';
+                button.disabled = false;
+            }
+        };
+
+        // Call popup-based share APIs directly from the user's click handler.
+        window.sharePreparedInvite = (method) => {
+            const invite = window.preparedInvite;
+            if (!invite) return window.showToast('먼저 초대 링크를 만들어 주세요.');
+            if (method === 'kakao') {
+                if (window.NativeAuth?.shareKakao) {
+                    try { window.NativeAuth.shareKakao(invite.url); closeModal('inviteModal'); }
+                    catch (error) { window.showToast(error.message || '카카오톡 공유를 열지 못했습니다.'); }
+                    return;
                 }
-                else if (method === 'kakao') {
-                    if (!window.Kakao?.isInitialized?.() || !window.Kakao?.Share?.sendDefault) {
-                        throw new Error('카카오 공유 SDK가 초기화되지 않았습니다. 페이지를 새로고침한 뒤 다시 시도해 주세요.');
-                    }
-                    try {
-                        await Promise.resolve(window.Kakao.Share.sendDefault({
-                            objectType: 'text',
-                            text: message,
-                            link: { webUrl: url, mobileWebUrl: url }
-                        }));
-                    } catch (error) {
-                        console.error('Kakao share failed', { code: error?.code, message: error?.message, url });
+                if (!window.Kakao?.isInitialized?.() || !window.Kakao?.Share?.sendDefault) {
+                    return window.showToast('카카오 공유 SDK가 초기화되지 않았습니다. 페이지를 새로고침한 뒤 다시 시도해 주세요.');
+                }
+                try {
+                    const result = window.Kakao.Share.sendDefault({
+                        objectType: 'text', text: invite.message,
+                        link: { webUrl: invite.url, mobileWebUrl: invite.url }
+                    });
+                    if (result && typeof result.catch === 'function') result.catch((error) => {
+                        console.error('Kakao share failed', { code: error?.code, message: error?.message, url: invite.url });
                         if (String(error?.code) === '4002' || String(error?.code) === '4041') {
-                            throw new Error(`카카오 공유 설정 오류 (${error.code}): 카카오 디벨로퍼스의 제품 링크에 jbusinessero-ctrl.github.io 도메인이 등록되어 있는지 확인해 주세요.`);
-                        }
-                        throw new Error(`카카오톡 공유에 실패했습니다${error?.code ? ` (${error.code})` : ''}. ${error?.message || '잠시 후 다시 시도해 주세요.'}`);
-                    }
+                            window.showToast(`카카오 공유 설정 오류 (${error.code}): 카카오 디벨로퍼스의 제품 링크에 jbusinessero-ctrl.github.io 도메인이 등록되어 있는지 확인해 주세요.`);
+                        } else window.showToast(`카카오톡 공유에 실패했습니다${error?.code ? ` (${error.code})` : ''}. ${error?.message || '잠시 후 다시 시도해 주세요.'}`);
+                    });
                     closeModal('inviteModal');
+                } catch (error) {
+                    console.error('Kakao share failed', { code: error?.code, message: error?.message, url: invite.url });
+                    window.showToast(`카카오톡 공유에 실패했습니다${error?.code ? ` (${error.code})` : ''}. ${error?.message || '잠시 후 다시 시도해 주세요.'}`);
                 }
-                else if (window.NativeAuth?.shareText) {
-                    window.NativeAuth.shareText(message);
-                    closeModal('inviteModal');
-                }
-                else if (navigator.share) {
-                    await navigator.share({ title: `${title} 초대`, text: message, url });
-                    closeModal('inviteModal');
-                }
-                else {
-                    await navigator.clipboard.writeText(url);
-                    closeModal('inviteModal');
-                    window.showToast('초대 링크를 복사했습니다.');
-                }
-            } catch (error) { window.showToast(error.message || '초대 링크를 만들지 못했습니다.'); }
+                return;
+            }
+            if (window.NativeAuth?.shareText) {
+                try { window.NativeAuth.shareText(invite.message); closeModal('inviteModal'); }
+                catch (error) { window.showToast(error.message || '공유 메뉴를 열지 못했습니다.'); }
+            } else if (navigator.share) {
+                navigator.share({ title: `${invite.title} 초대`, text: invite.message, url: invite.url })
+                    .then(() => closeModal('inviteModal'))
+                    .catch((error) => { if (error?.name !== 'AbortError') window.showToast(error.message || '링크 공유에 실패했습니다.'); });
+            } else window.copyPreparedInvite();
+        };
+
+        window.copyPreparedInvite = async () => {
+            if (!window.preparedInvite) return window.showToast('먼저 초대 링크를 만들어 주세요.');
+            try {
+                await navigator.clipboard.writeText(window.preparedInvite.url);
+                closeModal('inviteModal');
+                window.showToast('초대 링크를 복사했습니다.');
+            } catch (error) { window.showToast('링크 복사에 실패했습니다. 브라우저 권한을 확인해 주세요.'); }
         };
         window.showToast = (msg) => { const t = document.getElementById('toast'); document.getElementById('toastMessage').textContent = msg; t.classList.remove('hidden'); setTimeout(() => t.classList.add('hidden'), 2500); };
         window.exportToCSV = () => { window.showToast('CSV 내보내기가 완료되었습니다.'); };
