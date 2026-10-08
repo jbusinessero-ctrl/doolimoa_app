@@ -89,7 +89,7 @@ export const exchangeKakao = onRequest({ cors: ["https://jbusinessero-ctrl.githu
         ownerUid: candidateUid,
         memberUids: [candidateUid],
         status: "active",
-        profile: { husbandName: "남편", wifeName: "아내" },
+        profile: { ledgerName: "둘이모아 가계부" },
         data: emptyLedger(),
         createdAt: now,
         updatedAt: now,
@@ -131,15 +131,14 @@ async function callerLedger(uid: string) {
 function normalizeSnapshot(input: unknown) {
   if (!input || typeof input !== "object") throw new HttpsError("invalid-argument", "가계부 데이터 형식이 올바르지 않습니다.");
   const body = input as Record<string, unknown>;
-  const fields = ["transactions", "categoryBudgets", "overallBudget", "categories", "paymentMethods", "husbandName", "wifeName", "assets"];
+  const fields = ["transactions", "categoryBudgets", "overallBudget", "categories", "paymentMethods", "ledgerName", "assets"];
   const data: Record<string, unknown> = {};
   for (const field of fields) if (field in body) data[field] = body[field];
   if (data.transactions !== undefined && (!Array.isArray(data.transactions) || data.transactions.length > 5000)) throw new HttpsError("invalid-argument", "거래 내역이 너무 많거나 올바르지 않습니다.");
   if (data.assets !== undefined && (!data.assets || typeof data.assets !== "object")) throw new HttpsError("invalid-argument", "자산 데이터 형식이 올바르지 않습니다.");
   if (data.categoryBudgets !== undefined && (!data.categoryBudgets || typeof data.categoryBudgets !== "object")) throw new HttpsError("invalid-argument", "예산 데이터 형식이 올바르지 않습니다.");
   if (data.overallBudget !== undefined && (typeof data.overallBudget !== "number" || !Number.isFinite(data.overallBudget) || data.overallBudget < 0)) throw new HttpsError("invalid-argument", "예산 금액이 올바르지 않습니다.");
-  if (data.husbandName !== undefined && !limited(data.husbandName, 40)) throw new HttpsError("invalid-argument", "별명은 40자 이내여야 합니다.");
-  if (data.wifeName !== undefined && !limited(data.wifeName, 40)) throw new HttpsError("invalid-argument", "별명은 40자 이내여야 합니다.");
+  if (data.ledgerName !== undefined && (typeof data.ledgerName !== "string" || !data.ledgerName.trim() || data.ledgerName.length > 60)) throw new HttpsError("invalid-argument", "가계부 이름은 1~60자로 입력해 주세요.");
   if (Buffer.byteLength(JSON.stringify(data), "utf8") > MAX_LEDGER_BYTES) throw new HttpsError("resource-exhausted", "저장 가능한 가계부 데이터 크기를 초과했습니다.");
   return data;
 }
@@ -170,9 +169,9 @@ export const ledgerApi = onCall({ enforceAppCheck: false, maxInstances: 50 }, as
       currentLedgerCanReplace = !!currentLedger.exists
         && currentLedger.get("ownerUid") === uid
         && (currentLedger.get("memberUids") as string[] | undefined)?.length === 1;
-      currentLedgerHasData = currentLedgerCanReplace && !isEmptyLedger(currentLedger.get("data"), currentLedger.get("profile"));
+      currentLedgerHasData = currentLedgerCanReplace && !isEmptyLedger(currentLedger.get("data"));
     }
-    return { ownerName: ledgerSnap.get("profile.husbandName") || "사용자", currentLedgerId, currentLedgerCanReplace, currentLedgerHasData };
+    return { ledgerName: ledgerSnap.get("profile.ledgerName") || "둘이모아 가계부", currentLedgerId, currentLedgerCanReplace, currentLedgerHasData };
   }
 
   if (action === "invite.accept") {
@@ -204,7 +203,7 @@ export const ledgerApi = onCall({ enforceAppCheck: false, maxInstances: 50 }, as
         if (oldSnap.exists && (oldSnap.get("ownerUid") !== uid || (oldSnap.get("memberUids") as string[])?.length !== 1)) {
           throw new HttpsError("failed-precondition", "다른 구성원이 있는 가계부는 자동으로 교체할 수 없습니다.");
         }
-        if (oldSnap.exists && !isEmptyLedger(oldSnap.get("data"), oldSnap.get("profile")) && request.data?.confirmDeleteCurrentLedger !== true) {
+        if (oldSnap.exists && !isEmptyLedger(oldSnap.get("data")) && request.data?.confirmDeleteCurrentLedger !== true) {
           throw new HttpsError("failed-precondition", "현재 가계부 데이터를 삭제하려면 앱에서 삭제 확인을 완료해야 합니다.");
         }
         const oldInviteHash = oldSnap.get("activeInviteHash");
@@ -237,9 +236,9 @@ export const ledgerApi = onCall({ enforceAppCheck: false, maxInstances: 50 }, as
   if (action === "ledger.read") return { ledgerId, revision: snap.get("revision") || 1, data: snap.get("data") || emptyLedger(), profile: snap.get("profile") || {} };
   if (action === "ledger.write") {
     const data = normalizeSnapshot(request.data?.data);
-    const profile = { husbandName: data.husbandName, wifeName: data.wifeName };
-    delete data.husbandName;
-    delete data.wifeName;
+    const profile: Record<string, unknown> = {};
+    if (typeof data.ledgerName === "string") profile.ledgerName = data.ledgerName;
+    delete data.ledgerName;
     await db.runTransaction(async (tx) => {
       const current = await tx.get(ref);
       const currentMembers = current.get("memberUids") as string[];
@@ -299,7 +298,7 @@ export const ledgerApi = onCall({ enforceAppCheck: false, maxInstances: 50 }, as
       }
       if (activeInviteRef && activeInviteSnap?.exists && activeInviteSnap.get("status") === "active") tx.update(activeInviteRef, { status: "revoked", revokedAt: FieldValue.serverTimestamp() });
       tx.update(ref, { memberUids: [transactionOwnerUid], activeInviteHash: FieldValue.delete(), revision: FieldValue.increment(1), updatedAt: FieldValue.serverTimestamp() });
-      tx.create(newLedgerRef, { ownerUid: transactionRemovedUid, memberUids: [transactionRemovedUid], status: "active", profile: { husbandName: "남편", wifeName: "아내" }, data: emptyLedger(), createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(), revision: 1 });
+      tx.create(newLedgerRef, { ownerUid: transactionRemovedUid, memberUids: [transactionRemovedUid], status: "active", profile: { ledgerName: "둘이모아 가계부" }, data: emptyLedger(), createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(), revision: 1 });
       tx.set(db.collection("users").doc(transactionRemovedUid), { ledgerId: newLedgerRef.id, status: "active" }, { merge: true });
       tx.create(ref.collection("auditEvents").doc(), { actorUid: uid, action: "ledger.disconnect", removedUid: transactionRemovedUid, createdAt: FieldValue.serverTimestamp() });
     });
@@ -308,17 +307,14 @@ export const ledgerApi = onCall({ enforceAppCheck: false, maxInstances: 50 }, as
   throw new HttpsError("invalid-argument", "지원하지 않는 요청입니다.");
 });
 
-function isEmptyLedger(data: unknown, profile: unknown): boolean {
+function isEmptyLedger(data: unknown): boolean {
   if (!data || typeof data !== "object") return true;
   const value = data as Record<string, unknown>;
-  const savedProfile = (profile && typeof profile === "object" ? profile : {}) as Record<string, unknown>;
   return (!Array.isArray(value.transactions) || value.transactions.length === 0)
     && Number(value.overallBudget || 0) === 0
     && Object.keys((value.categoryBudgets as object) || {}).length === 0
     && (!value.assets || Object.values(value.assets as Record<string, unknown>).every((items) => !Array.isArray(items) || items.length === 0))
-    && (value.categories == null) && (value.paymentMethods == null)
-    && (savedProfile.husbandName == null || savedProfile.husbandName === "남편")
-    && (savedProfile.wifeName == null || savedProfile.wifeName === "아내");
+    && (value.categories == null) && (value.paymentMethods == null);
 }
 
 export const pruneExpiredSecurityRecords = onSchedule("every 60 minutes", async () => {

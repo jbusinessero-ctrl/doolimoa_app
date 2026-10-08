@@ -36,10 +36,7 @@
         .onboarding-backdrop { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 20px; background: linear-gradient(135deg, #fff1f2 0%, #f5f3ff 55%, #eff6ff 100%); }
         .onboarding-card { width: min(100%, 440px); padding: 28px; border: 1px solid rgba(255,255,255,.9); border-radius: 28px; background: rgba(255,255,255,.88); box-shadow: 0 24px 70px rgba(30,41,59,.14); }
         .onboarding-step[hidden] { display: none !important; }
-        .header-title { display: flex; flex-direction: column; line-height: 1.15; white-space: nowrap; }
-        .header-title-names { max-width: min(42vw, 360px); overflow: hidden; text-overflow: ellipsis; }
-        .header-code-pill { flex: 0 0 auto; }
-        .header-code-actions { display: flex; align-items: center; gap: 8px; }
+        .header-title { max-width: min(56vw, 420px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .header-room-change { white-space: nowrap; word-break: keep-all; flex: 0 0 auto; }
         .transaction-card-list { display: none; }
         .transaction-mobile-card { min-width: 0; }
@@ -50,11 +47,7 @@
         @media (max-width: 639px) {
             body { padding-bottom: 88px; }
             header .header-inner { min-height: 72px; height: auto; padding: 9px 12px; gap: 8px; }
-            .header-title { font-size: clamp(11px, 3.4vw, 14px); }
-            .header-title-names { max-width: 40vw; }
-            #headerCodeDisplay { font-size: 10px; white-space: nowrap; }
-            .header-code-pill { padding: 6px 8px; font-size: 10px; }
-            .header-code-actions { gap: 7px; }
+            .header-title { max-width: 54vw; font-size: clamp(11px, 3.4vw, 14px); }
             .header-room-change { padding: 4px 7px; font-size: 10px; }
             main.app-main { padding-top: 12px; }
             .controls-card { padding: 12px; gap: 10px; }
@@ -107,10 +100,10 @@
             </div>
             <div id="roomSetupStep" class="onboarding-step" hidden>
                 <h2 class="text-lg font-extrabold text-slate-800">가계부 연결</h2>
-                <p class="mt-2 mb-5 text-sm leading-6 text-slate-500">새 가계부를 시작하거나 배우자에게 받은 초대 링크로 연결하세요.</p>
-                <button onclick="createNewRoomCode()" class="w-full py-3 rounded-2xl bg-slate-900 text-white font-extrabold">내 가계부 시작</button>
+                <p class="mt-2 mb-5 text-sm leading-6 text-slate-500">새 가계부를 시작하거나 함께 사용할 사람에게 받은 초대 링크로 연결하세요.</p>
+                <button onclick="createNewRoomCode()" class="w-full py-3 rounded-2xl bg-slate-900 text-white font-extrabold">새 가계부 만들기</button>
                 <div class="my-4 flex items-center gap-3 text-xs text-slate-400"><span class="h-px flex-1 bg-slate-200"></span>또는 초대 링크 연결<span class="h-px flex-1 bg-slate-200"></span></div>
-                <label for="inputRoomCode" class="mb-1.5 block text-xs font-bold text-slate-600">배우자에게 받은 초대 링크/토큰</label>
+                <label for="inputRoomCode" class="mb-1.5 block text-xs font-bold text-slate-600">초대 링크 또는 토큰</label>
                 <div class="flex gap-2"><input type="text" id="inputRoomCode" placeholder="초대 링크를 붙여넣으세요" class="min-w-0 flex-1 p-3 bg-white border border-slate-200 rounded-xl text-xs"><button onclick="joinExistingRoomCode()" class="px-5 py-3 bg-rose-500 text-white rounded-xl font-bold">연결</button></div>
             </div>
         </div>
@@ -125,19 +118,16 @@
         <div class="header-inner max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
             <div class="flex items-center space-x-3">
                 <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-500 to-amber-300 flex items-center justify-center text-white text-lg font-bold shadow-md">
-                    <i class="fa-solid fa-heart"></i>
+                    <i class="fa-solid fa-people-group"></i>
                 </div>
                 <div>
-                    <h1 id="headerTitle" class="header-title text-base sm:text-lg font-extrabold text-slate-800"><span id="headerCoupleNames" class="header-title-names">남편 ♥ 아내</span><span>가계부</span></h1>
-                    <span id="syncStatusBadge" aria-label="클라우드 연결 상태" class="inline-flex items-center text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold border border-emerald-200">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 pulse-dot"></span> 보안 서버 연결
-                    </span>
+                    <div class="flex items-center gap-1 min-w-0">
+                        <h1 id="headerTitle" class="header-title text-base sm:text-lg font-extrabold text-slate-800"><span id="headerLedgerName">둘이모아 가계부</span></h1>
+                        <button type="button" onclick="openLedgerNameModal()" aria-label="가계부 이름 변경" title="가계부 이름 변경" class="shrink-0 p-1 text-slate-400 hover:text-rose-500"><i class="fa-solid fa-pen text-xs"></i></button>
+                    </div>
                 </div>
             </div>
-            <div class="header-code-pill liquid-pill px-3 py-1.5 rounded-2xl flex flex-col items-end gap-1 text-xs">
-                <span id="headerCodeDisplay" class="font-bold text-amber-900"><i class="fa-solid fa-key text-amber-500 mr-1"></i>코드: ----</span>
-                <div class="header-code-actions"><button onclick="copyInviteCode()" class="text-slate-400 hover:text-slate-700" title="코드 복사"><i class="fa-regular fa-copy"></i></button><button onclick="showRoomSetup()" class="header-room-change px-2 py-0.5 bg-amber-200 hover:bg-amber-300 text-amber-950 font-bold rounded-xl transition-all">변경</button></div>
-            </div>
+            <button type="button" onclick="openInviteModal()" class="shrink-0 px-3 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs sm:text-sm font-extrabold shadow-sm"><i class="fa-solid fa-user-plus mr-1"></i>초대하기</button>
         </div>
     </header>
 
@@ -269,7 +259,7 @@
             <div class="flex justify-between items-center pb-3 border-b border-slate-200"><h3 id="assetModalTitle" class="font-bold text-slate-800 text-sm"><i class="fa-solid fa-coins text-amber-500 mr-2"></i>소유 자산 등록/수정</h3><button onclick="closeModal('assetModal')" class="text-slate-400"><i class="fa-solid fa-xmark text-lg"></i></button></div>
             <form id="assetForm" onsubmit="handleAssetSubmit(event)" class="space-y-3 text-xs">
                 <div><label class="block font-bold mb-1">구분</label><select id="aCategory" class="w-full p-2.5 liquid-pill rounded-xl font-bold"><option value="stocks">주식/ETF 계좌</option><option value="realEstate">부동산</option><option value="vehicles">차량</option><option value="pensions">ISA/IRP/퇴직연금</option><option value="savings">예적금/현금</option></select></div>
-                <div><label class="block font-bold mb-1">자산/종목(계좌)명</label><input type="text" id="aName" required placeholder="예: 토스증권 주식, 신혼집, 청약통장" class="w-full p-2.5 liquid-pill rounded-xl font-semibold"></div>
+                <div><label class="block font-bold mb-1">자산/종목(계좌)명</label><input type="text" id="aName" required placeholder="예: 토스증권 주식, 우리 집, 청약통장" class="w-full p-2.5 liquid-pill rounded-xl font-semibold"></div>
                 <div class="grid grid-cols-2 gap-2">
                     <div><label class="block font-bold mb-1">평가금액 (원)</label><input type="number" id="aValue" min="0" required placeholder="0" class="w-full p-2.5 liquid-pill rounded-xl font-bold"></div>
                     <div><label class="block font-bold mb-1">관련 대출/부채 (원)</label><input type="number" id="aDebt" min="0" placeholder="0" class="w-full p-2.5 liquid-pill rounded-xl font-bold"></div>
@@ -282,11 +272,11 @@
 
     <div id="settingsModal" class="fixed inset-0 z-50 hidden bg-slate-900/30 backdrop-blur-md flex items-center justify-center p-4">
         <div class="bg-white/80 rounded-3xl max-w-lg w-full shadow-2xl border border-white flex flex-col max-h-[85vh]">
-            <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center"><h3 class="font-bold text-slate-800 text-sm"><i class="fa-solid fa-gear text-rose-500 mr-2"></i>카테고리 / 결제수단 / 별명 관리</h3><button onclick="closeModal('settingsModal')" class="text-slate-400"><i class="fa-solid fa-xmark text-lg"></i></button></div>
+            <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center"><h3 class="font-bold text-slate-800 text-sm"><i class="fa-solid fa-gear text-rose-500 mr-2"></i>설정</h3><button onclick="closeModal('settingsModal')" class="text-slate-400"><i class="fa-solid fa-xmark text-lg"></i></button></div>
             <div class="flex border-b border-slate-200 p-1.5 gap-1 bg-slate-100/50 text-xs font-bold">
                 <button id="tabBtnCat" onclick="switchSettingsTab('category')" class="flex-1 py-2 rounded-xl bg-white text-rose-600 shadow-sm">카테고리</button>
                 <button id="tabBtnPay" onclick="switchSettingsTab('payment')" class="flex-1 py-2 rounded-xl text-slate-500">결제수단</button>
-                <button id="tabBtnProfile" onclick="switchSettingsTab('profile')" class="flex-1 py-2 rounded-xl text-slate-500">커플 별명</button>
+                <button id="tabBtnAccount" onclick="switchSettingsTab('account')" class="flex-1 py-2 rounded-xl text-slate-500">계정 및 연결</button>
             </div>
             <div class="p-6 overflow-y-auto space-y-4 flex-1 text-xs">
                 <div id="settingsCategorySection" class="space-y-3">
@@ -298,20 +288,9 @@
                     <div class="p-3 liquid-pill rounded-2xl flex gap-2"><input type="text" id="newPaymentName" placeholder="결제수단 이름" class="flex-1 p-2 bg-white rounded-xl border border-slate-200"><button onclick="addPaymentMethodItem()" class="px-4 py-2 bg-rose-500 text-white rounded-xl font-bold">추가</button></div>
                     <div id="paymentSettingsList" class="space-y-2"></div>
                 </div>
-                <div id="settingsProfileSection" class="space-y-3 hidden">
-                    <div class="p-4 bg-rose-50/70 border border-rose-100 rounded-2xl space-y-3">
-                        <div><label class="block font-bold mb-1">남편 별명</label><input type="text" id="husbandNameInput" class="w-full p-2 bg-white rounded-xl border font-bold"></div>
-                        <div><label class="block font-bold mb-1">아내 별명</label><input type="text" id="wifeNameInput" class="w-full p-2 bg-white rounded-xl border font-bold"></div>
-                        <button onclick="saveCoupleNames()" class="w-full py-2 bg-rose-500 text-white rounded-xl font-bold shadow-md">별명 저장</button>
-                    </div>
-                    <div class="p-4 bg-amber-50/80 border border-amber-100 rounded-2xl space-y-2">
-                        <span class="font-bold block">파트너 초대</span>
-                        <p class="text-[11px] leading-5 text-slate-500">초대 링크는 24시간 동안 유효하며 한 번만 사용할 수 있습니다.</p>
-                        <button onclick="createAndShareInvite('system')" class="w-full py-2.5 bg-slate-800 text-white rounded-xl font-bold">초대 링크 공유</button>
-                        <button onclick="createAndShareInvite('kakao')" class="w-full py-2.5 bg-[#FEE500] text-slate-900 rounded-xl font-bold">카카오톡으로 초대</button>
-                    </div>
+                <div id="settingsAccountSection" class="space-y-3 hidden">
                     <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
-                        <span class="font-bold block">파트너 연결</span>
+                        <span class="font-bold block">공유 연결 관리</span>
                         <p class="text-[11px] leading-5 text-slate-500">연결을 해제하면 현재 공유 가계부는 방장에게 남고, 나간 사용자는 새 빈 가계부를 받습니다.</p>
                         <button onclick="disconnectPartner()" class="w-full py-2 bg-white border border-rose-200 text-rose-700 rounded-xl font-bold">파트너 연결 해제</button>
                     </div>
@@ -321,15 +300,20 @@
         </div>
     </div>
 
-    <div id="roomCodeModal" class="fixed inset-0 z-50 hidden bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4">
-        <div class="bg-white/85 rounded-3xl max-w-md w-full shadow-2xl border border-white p-6 space-y-5">
-            <div class="text-center space-y-1"><h3 class="text-xl font-black text-slate-800">신혼부부 공동 가계부</h3><p class="text-xs text-slate-500">배우자와의 실시간 공유 참여 코드</p></div>
-            <div class="space-y-3 text-xs">
-                <div class="p-4 liquid-pill border rounded-2xl space-y-2"><span class="font-bold block">파트너 초대</span><p class="text-[11px] text-slate-500">초대 링크는 24시간 동안 유효하며 한 번만 사용할 수 있습니다.</p><button onclick="createAndShareInvite('system')" class="w-full py-2.5 bg-slate-800 text-white rounded-xl font-bold">초대 링크 공유</button><button onclick="createAndShareInvite('kakao')" class="w-full py-2.5 bg-[#FEE500] text-slate-900 rounded-xl font-bold">카카오톡으로 공유</button></div>
-                <div class="p-4 bg-rose-50/70 border border-rose-100 rounded-2xl space-y-2"><span class="font-bold block">초대 링크로 연결</span><div class="flex gap-2"><input type="text" id="roomCodeModalInput" placeholder="초대 링크/토큰" class="w-full min-w-0 p-2.5 bg-white border rounded-xl text-xs"><button onclick="joinExistingRoomCode('roomCodeModalInput')" class="px-5 py-2.5 bg-rose-500 text-white rounded-xl font-bold whitespace-nowrap">연결</button></div></div>
-            </div>
-            <div id="roomModalCloseContainer" class="text-center hidden"><button onclick="closeModal('roomCodeModal')" class="text-xs text-slate-500 underline">닫기</button></div>
+    <div id="inviteModal" class="fixed inset-0 z-50 hidden bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-white/90 rounded-3xl max-w-md w-full shadow-2xl border border-white p-6 space-y-4">
+            <div class="flex items-start justify-between gap-4"><div><h3 class="text-lg font-black text-slate-800">가계부 초대</h3><p class="mt-1 text-xs leading-5 text-slate-500">초대 링크는 24시간 동안 유효하며 한 번만 사용할 수 있습니다.</p></div><button type="button" onclick="closeModal('inviteModal')" aria-label="닫기" class="text-slate-400"><i class="fa-solid fa-xmark text-lg"></i></button></div>
+            <div class="space-y-2"><button onclick="createAndShareInvite('kakao')" class="w-full py-3 rounded-xl bg-[#FEE500] text-slate-900 font-extrabold"><i class="fa-solid fa-comment mr-1"></i>카카오톡으로 초대</button><button onclick="createAndShareInvite('system')" class="w-full py-3 rounded-xl bg-slate-800 text-white font-bold"><i class="fa-solid fa-arrow-up-from-bracket mr-1"></i>링크 공유</button></div>
+            <p class="text-[10px] leading-4 text-slate-400">초대받은 사람이 링크를 열고 로그인하면 연결 확인 화면이 표시됩니다.</p>
         </div>
+    </div>
+
+    <div id="ledgerNameModal" class="fixed inset-0 z-50 hidden bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4">
+        <form onsubmit="saveLedgerName(event)" class="bg-white/90 rounded-3xl max-w-sm w-full shadow-2xl border border-white p-6 space-y-4">
+            <div><h3 class="text-lg font-black text-slate-800">가계부 이름 변경</h3><p class="mt-1 text-xs text-slate-500">함께 사용하는 사람에게도 같은 이름으로 표시됩니다.</p></div>
+            <input id="ledgerNameInput" type="text" maxlength="60" required class="w-full p-3 rounded-xl bg-white border border-slate-200 text-sm font-bold" placeholder="가계부 이름">
+            <div class="flex justify-end gap-2"><button type="button" onclick="closeModal('ledgerNameModal')" class="px-4 py-2 rounded-xl bg-slate-100 text-xs font-bold">취소</button><button type="submit" class="px-5 py-2 rounded-xl bg-rose-500 text-white text-xs font-bold">저장</button></div>
+        </form>
     </div>
 
     <div id="transactionModal" class="fixed inset-0 z-50 hidden bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4">
@@ -415,7 +399,7 @@
             saving: [{ name: '주택 청약/적금', icon: 'fa-piggy-bank', color: '#2563eb' }, { name: '주식/ETF 투자', icon: 'fa-chart-line', color: '#7c3aed' }, { name: '비상금 적립', icon: 'fa-shield-halved', color: '#059669' }]
         };
 
-        window.paymentMethods = ['공동신용카드', '생활비통장(계좌이체)', '남편개인카드', '아내개인카드', '현금/제로페이'];
+        window.paymentMethods = ['공동 카드', '공동 계좌이체', '개인 카드 1', '개인 카드 2', '현금/제로페이'];
         window.categoryBudgets = {};
         window.overallBudget = 0;
         window.transactions = [];
@@ -423,11 +407,7 @@
         window.budgetExpanded = false;
         window.transactionVisibleCount = 7;
         window.transactionListContext = '';
-        window.husbandName = localStorage.getItem('shinhon_husband_name') || '남편';
-        window.wifeName = localStorage.getItem('shinhon_wife_name') || '아내';
-        window.pendingCoupleNamesSync = localStorage.getItem('shinhon_pending_couple_names_sync') === 'true';
-        if (window.husbandName === '몽돌') window.husbandName = '남편';
-        if (window.wifeName === '땡구') window.wifeName = '아내';
+        window.ledgerName = '둘이모아 가계부';
 
         function formatKRW(num) { return new Intl.NumberFormat('ko-KR').format(num || 0) + '원'; }
         function formatNumberOnly(num) { return new Intl.NumberFormat('ko-KR').format(num || 0); }
@@ -452,10 +432,6 @@
             setTimeout(() => document.getElementById('assetSection')?.scrollIntoView({ behavior: 'smooth' }), 100);
         };
 
-        window.updateCodeHeaderUI = () => {
-            document.getElementById('headerCodeDisplay').textContent = window.activeRoomCode ? '공유 가계부' : '가계부 연결';
-        };
-
         window.showRoomSetup = () => {
             document.getElementById('onboardingScreen').classList.remove('hidden');
             document.getElementById('brandingStep').hidden = true;
@@ -463,9 +439,8 @@
         };
         window.toggleBudgetExpanded = () => { window.budgetExpanded = !window.budgetExpanded; window.renderDashboard(); };
 
-        window.updateNamesUI = () => {
-            const h = window.husbandName || '남편', w = window.wifeName || '아내';
-            document.getElementById('headerCoupleNames').textContent = `${h} ♥ ${w}`;
+        window.updateLedgerNameUI = () => {
+            document.getElementById('headerLedgerName').textContent = window.ledgerName || '둘이모아 가계부';
         };
 
         window.updateDateUI = () => {
@@ -968,18 +943,16 @@
         };
 
         window.openSettingsModal = () => {
-            document.getElementById('husbandNameInput').value = window.husbandName || '남편';
-            document.getElementById('wifeNameInput').value = window.wifeName || '아내';
             window.switchSettingsTab('category'); openModal('settingsModal');
         };
 
         window.switchSettingsTab = (tab) => {
             document.getElementById('settingsCategorySection').classList.toggle('hidden', tab !== 'category');
             document.getElementById('settingsPaymentSection').classList.toggle('hidden', tab !== 'payment');
-            document.getElementById('settingsProfileSection').classList.toggle('hidden', tab !== 'profile');
+            document.getElementById('settingsAccountSection').classList.toggle('hidden', tab !== 'account');
             document.getElementById('tabBtnCat').className = tab === 'category' ? 'flex-1 py-2 rounded-xl bg-white text-rose-600 shadow-sm' : 'flex-1 py-2 rounded-xl text-slate-500';
             document.getElementById('tabBtnPay').className = tab === 'payment' ? 'flex-1 py-2 rounded-xl bg-white text-rose-600 shadow-sm' : 'flex-1 py-2 rounded-xl text-slate-500';
-            document.getElementById('tabBtnProfile').className = tab === 'profile' ? 'flex-1 py-2 rounded-xl bg-white text-rose-600 shadow-sm' : 'flex-1 py-2 rounded-xl text-slate-500';
+            document.getElementById('tabBtnAccount').className = tab === 'account' ? 'flex-1 py-2 rounded-xl bg-white text-rose-600 shadow-sm' : 'flex-1 py-2 rounded-xl text-slate-500';
             if (tab === 'category') window.renderCategorySettingsList();
             if (tab === 'payment') window.renderPaymentSettingsList();
         };
@@ -1033,20 +1006,32 @@
             window.saveStateToFirestore(); window.renderPaymentSettingsList();
         };
 
-        window.saveCoupleNames = async () => {
-            window.husbandName = document.getElementById('husbandNameInput').value.trim() || '남편';
-            window.wifeName = document.getElementById('wifeNameInput').value.trim() || '아내';
-            localStorage.setItem('shinhon_husband_name', window.husbandName);
-            localStorage.setItem('shinhon_wife_name', window.wifeName);
-            window.pendingCoupleNamesSync = true;
-            localStorage.setItem('shinhon_pending_couple_names_sync', 'true');
-            window.updateNamesUI(); window.renderDashboard();
-            const saved = await window.saveStateToFirestore();
-            window.showToast(saved ? '커플 별명이 저장되었습니다.' : '기기에 별명을 저장했습니다. 인터넷 연결 후 다시 저장해 주세요.');
+        window.openLedgerNameModal = () => {
+            document.getElementById('ledgerNameInput').value = window.ledgerName || '둘이모아 가계부';
+            openModal('ledgerNameModal');
         };
 
+        window.saveLedgerName = async (event) => {
+            event.preventDefault();
+            const nextName = document.getElementById('ledgerNameInput').value.trim();
+            if (!nextName) { window.showToast('가계부 이름을 입력해 주세요.'); return; }
+            const previousName = window.ledgerName;
+            window.ledgerName = nextName;
+            window.updateLedgerNameUI();
+            const saved = await window.saveStateToFirestore();
+            if (saved) {
+                closeModal('ledgerNameModal');
+                window.showToast('가계부 이름을 변경했습니다.');
+            } else {
+                window.ledgerName = previousName;
+                window.updateLedgerNameUI();
+            }
+        };
+
+        window.openInviteModal = () => openModal('inviteModal');
+
         window.disconnectPartner = async () => {
-            if (!window.confirm('파트너 연결을 해제할까요? 공유 데이터는 가계부 방장에게 남고, 다른 사용자는 새 빈 가계부를 받습니다.')) return;
+            if (!window.confirm('공유 연결을 해제할까요? 공유 데이터는 가계부 소유자에게 남고, 연결을 해제한 사용자는 새 빈 가계부를 받습니다.')) return;
             try {
                 await window.callLedgerApi('ledger.disconnect');
                 await window.loadSecureLedger();
@@ -1094,7 +1079,6 @@
                 await window.loadSecureLedger();
                 localStorage.setItem('doolimoa_setup_done', 'true');
                 document.getElementById('onboardingScreen').classList.add('hidden');
-                closeModal('roomCodeModal');
             } catch (error) { window.showToast(error.message || '가계부를 불러오지 못했습니다.'); }
         };
 
@@ -1108,16 +1092,17 @@
             window.pendingInviteProcessing = true;
             try {
                 const preview = await window.callLedgerApi('invite.preview', { token });
+                const targetName = preview.ledgerName || '둘이모아 가계부';
                 const hasCurrentLedger = !!preview.currentLedgerId;
                 if (hasCurrentLedger && !preview.currentLedgerCanReplace) {
-                    window.alert(`${preview.ownerName}님의 가계부에 연결할 수 없습니다. 현재 가계부가 본인만 사용하는 가계부가 아니어서 다른 구성원의 데이터를 보호했습니다.`);
+                    window.alert(`“${targetName}”에 연결할 수 없습니다. 현재 가계부가 본인만 사용하는 가계부가 아니어서 다른 구성원의 데이터를 보호했습니다.`);
                     return;
                 }
                 const prompt = hasCurrentLedger && preview.currentLedgerHasData
-                    ? `주의: ${preview.ownerName}님의 가계부에 연결하면 현재 개인 가계부의 지출·수입·자산 데이터가 삭제됩니다. 계속하시겠습니까?`
+                    ? `주의: “${targetName}”에 연결하면 현재 개인 가계부의 지출·수입·자산 데이터가 삭제됩니다. 계속하시겠습니까?`
                     : hasCurrentLedger
-                        ? `${preview.ownerName}님의 가계부에 연결하시겠습니까? 현재 비어 있는 개인 가계부는 연결 과정에서 제거됩니다.`
-                        : `${preview.ownerName}님의 가계부에 연결하시겠습니까?`;
+                        ? `“${targetName}”에 연결하시겠습니까? 현재 비어 있는 개인 가계부는 연결 과정에서 제거됩니다.`
+                        : `“${targetName}”에 연결하시겠습니까?`;
                 if (!window.confirm(prompt)) return;
                 await window.callLedgerApi('invite.accept', { token, confirmDeleteCurrentLedger: !!preview.currentLedgerHasData });
                 window.NativeAuth?.clearPendingInvite();
@@ -1127,29 +1112,42 @@
                 localStorage.removeItem('shinhon_room_code');
                 await window.loadSecureLedger();
                 document.getElementById('onboardingScreen').classList.add('hidden');
-                closeModal('roomCodeModal');
-                window.showToast('파트너 가계부에 연결되었습니다.');
+                window.showToast('공유 가계부에 연결되었습니다.');
             } catch (error) { window.showToast(error.message || '초대 링크를 사용할 수 없습니다.'); }
             finally { window.pendingInviteProcessing = false; }
         };
 
-        window.copyInviteCode = () => window.createAndShareInvite('system');
         window.createAndShareInvite = async (method = 'system') => {
             try {
                 const { token } = await window.callLedgerApi('invite.create');
                 const url = `${window.INVITE_BASE_URL}?token=${encodeURIComponent(token)}`;
-                const message = `둘이모아 가계부 초대 링크입니다. 24시간 이내에 앱에서 열어 연결해 주세요. ${url}`;
-                if (method === 'kakao' && window.NativeAuth?.shareKakao) window.NativeAuth.shareKakao(url);
+                const title = window.ledgerName || '둘이모아 가계부';
+                const message = `${title} 초대 링크입니다. 24시간 이내에 열어 연결해 주세요. ${url}`;
+                if (method === 'kakao' && window.NativeAuth?.shareKakao) {
+                    window.NativeAuth.shareKakao(url);
+                    closeModal('inviteModal');
+                }
                 else if (method === 'kakao' && window.Kakao?.Share?.sendDefault) {
                     window.Kakao.Share.sendDefault({
                         objectType: 'text',
                         text: message,
                         link: { webUrl: url, mobileWebUrl: url }
                     });
+                    closeModal('inviteModal');
                 }
-                else if (window.NativeAuth?.shareText) window.NativeAuth.shareText(message);
-                else if (navigator.share) await navigator.share({ title: '둘이모아 가계부 초대', text: message, url });
-                else { await navigator.clipboard.writeText(url); window.showToast('초대 링크를 복사했습니다.'); }
+                else if (window.NativeAuth?.shareText) {
+                    window.NativeAuth.shareText(message);
+                    closeModal('inviteModal');
+                }
+                else if (navigator.share) {
+                    await navigator.share({ title: `${title} 초대`, text: message, url });
+                    closeModal('inviteModal');
+                }
+                else {
+                    await navigator.clipboard.writeText(url);
+                    closeModal('inviteModal');
+                    window.showToast('초대 링크를 복사했습니다.');
+                }
             } catch (error) { window.showToast(error.message || '초대 링크를 만들지 못했습니다.'); }
         };
         window.showToast = (msg) => { const t = document.getElementById('toast'); document.getElementById('toastMessage').textContent = msg; t.classList.remove('hidden'); setTimeout(() => t.classList.add('hidden'), 2500); };
@@ -1223,22 +1221,17 @@
             if (data.paymentMethods) window.paymentMethods = data.paymentMethods;
             if (data.assets) window.assets = data.assets;
             const profile = result.profile || {};
-            window.husbandName = profile.husbandName || '남편';
-            window.wifeName = profile.wifeName || '아내';
-            localStorage.setItem('shinhon_husband_name', window.husbandName);
-            localStorage.setItem('shinhon_wife_name', window.wifeName);
-            window.updateCodeHeaderUI(); window.updateNamesUI(); window.renderDashboard(); window.renderTransactions(); window.renderAssets();
+            window.ledgerName = profile.ledgerName || '둘이모아 가계부';
+            window.updateLedgerNameUI(); window.renderDashboard(); window.renderTransactions(); window.renderAssets();
             if (window.currentView === 'calendar') window.renderCalendar();
         };
         window.saveStateToFirestore = async () => {
             if (!auth.currentUser) return false;
             try {
-                const data = { transactions: window.transactions, categoryBudgets: window.categoryBudgets, overallBudget: window.overallBudget, categories: window.CATEGORIES, paymentMethods: window.paymentMethods, husbandName: window.husbandName, wifeName: window.wifeName, assets: window.assets };
+                const data = { transactions: window.transactions, categoryBudgets: window.categoryBudgets, overallBudget: window.overallBudget, categories: window.CATEGORIES, paymentMethods: window.paymentMethods, ledgerName: window.ledgerName, assets: window.assets };
                 window.isSavingSecureLedger = true;
                 await window.callLedgerApi('ledger.write', { data, expectedRevision: window.lastLedgerRevision || 1 });
                 window.lastLedgerRevision = (window.lastLedgerRevision || 0) + 1;
-                window.pendingCoupleNamesSync = false;
-                localStorage.removeItem('shinhon_pending_couple_names_sync');
                 return true;
             } catch (error) {
                 console.error('Secure save failed', error);
@@ -1313,7 +1306,7 @@
                     }
                 } catch (error) { window.showRoomSetup(); window.showToast(error.message); }
             } else {
-                window.updateNamesUI(); window.renderDashboard(); window.renderTransactions(); window.renderAssets();
+                window.updateLedgerNameUI(); window.renderDashboard(); window.renderTransactions(); window.renderAssets();
                 document.getElementById('brandingStep').hidden = false;
                 document.getElementById('roomSetupStep').hidden = true;
             }
