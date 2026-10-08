@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Firestore is an Admin SDK-only data store. All client reads and writes
+    // must go through authenticated Cloud Functions.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

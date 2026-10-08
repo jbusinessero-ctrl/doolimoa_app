@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#fff1f2">
+  <title>둘이모아 가계부 초대</title>
+  <style>
+    body{margin:0;min-height:100vh;display:grid;place-items:center;background:#fff1f2;color:#1e293b;font-family:system-ui,sans-serif}
+    main{width:min(88vw,420px);padding:28px;border-radius:24px;background:white;text-align:center;box-shadow:0 18px 50px #1e293b20}
+    img{width:80px;height:80px;border-radius:22px}h1{font-size:22px}p{color:#64748b;line-height:1.6}
+    a{display:block;margin-top:18px;padding:14px;border-radius:14px;background:#e11d48;color:white;text-decoration:none;font-weight:800}
+  </style>
+</head>
+<body>
+  <main>
+    <img src="doolimoa_app_icon_512x512.png" alt="둘이모아 로고">
+    <h1>둘이모아 가계부 초대</h1>
+    <p>초대 링크를 확인하고 앱에서 연결을 진행합니다.</p>
+    <a id="openApp" href="#">앱에서 초대 확인</a>
+  </main>
+  <script>
+    const token = new URLSearchParams(location.search).get('token') || '';
+    const encodedToken = encodeURIComponent(token);
+    const appUrl = `intent://invite?token=${encodedToken}#Intent;scheme=doolimoa;package=com.doolimoa.app;S.browser_fallback_url=${encodeURIComponent(`https://play.google.com/store/apps/details?id=com.doolimoa.app&referrer=${encodeURIComponent(`invite=${token}`)}`)};end`;
+    const playUrl = `https://play.google.com/store/apps/details?id=com.doolimoa.app&referrer=${encodeURIComponent(`invite=${token}`)}`;
+    document.getElementById('openApp').href = appUrl;
+    if (/Android/i.test(navigator.userAgent) && token) {
+      location.href = appUrl;
+      setTimeout(() => { if (document.visibilityState === 'visible') location.href = playUrl; }, 1400);
+    }
+  </script>
+</body>
+</html>
