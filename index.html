@@ -1146,7 +1146,7 @@
     <!-- Authenticated callable API only. The client does not import Firestore. -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, onAuthStateChanged, signInWithCustomToken, setPersistence, browserLocalPersistence, inMemoryPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-functions.js";
 
         const firebaseConfig = {
@@ -1163,6 +1163,12 @@
         if (window.Kakao && !window.Kakao.isInitialized()) window.Kakao.init(KAKAO_JS_KEY);
         localStorage.removeItem('shinhon_room_code');
         const auth = getAuth(app);
+        // Make the Kakao OAuth return survive page reloads. Some WebViews (file://)
+        // do not support browser storage, so retain an in-memory fallback there.
+        const authPersistenceReady = setPersistence(auth, browserLocalPersistence).catch(async (error) => {
+            console.warn('Persistent Firebase Auth storage is unavailable; using in-memory auth.', error);
+            await setPersistence(auth, inMemoryPersistence);
+        });
         const functions = getFunctions(app, 'us-central1');
         const ledgerCallable = httpsCallable(functions, 'ledgerApi');
         window.INVITE_BASE_URL = 'https://jbusinessero-ctrl.github.io/doolimoa_app/invite.html';
@@ -1235,11 +1241,11 @@
             }
             if (!window.Kakao?.Auth) return window.showToast('카카오 로그인 모듈을 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.');
             const state = crypto.randomUUID();
-            sessionStorage.setItem('doolimoa_kakao_oauth_state', state);
+            localStorage.setItem('doolimoa_kakao_oauth_state', state);
             window.Kakao.Auth.authorize({ redirectUri: 'https://jbusinessero-ctrl.github.io/doolimoa_app/', state });
         };
         window.onNativeFirebaseCustomToken = async (customToken) => {
-            try { await signInWithCustomToken(auth, customToken); }
+            try { await authPersistenceReady; await signInWithCustomToken(auth, customToken); }
             catch (error) { window.showToast(error.message || '로그인을 완료하지 못했습니다.'); }
         };
         window.onNativeAuthError = (message) => window.showToast(message || '카카오 로그인을 완료하지 못했습니다.');
@@ -1256,13 +1262,14 @@
             window.showToast('카카오 로그인이 취소되었거나 승인되지 않았습니다.');
         }
         if (kakaoCode) {
-            const expectedState = sessionStorage.getItem('doolimoa_kakao_oauth_state');
+            const expectedState = localStorage.getItem('doolimoa_kakao_oauth_state') || sessionStorage.getItem('doolimoa_kakao_oauth_state');
+            localStorage.removeItem('doolimoa_kakao_oauth_state');
             sessionStorage.removeItem('doolimoa_kakao_oauth_state');
             history.replaceState({}, document.title, location.pathname + (kakaoParams.get('token') ? `?token=${encodeURIComponent(kakaoParams.get('token'))}` : ''));
             if (!expectedState || kakaoParams.get('state') !== expectedState) {
                 showKakaoLoginError('로그인 요청을 확인할 수 없습니다. 페이지를 새로고침한 뒤 다시 시도해 주세요.');
             } else {
-                fetch('https://us-central1-jero-a0ce0.cloudfunctions.net/exchangeKakao', {
+                authPersistenceReady.then(() => fetch('https://us-central1-jero-a0ce0.cloudfunctions.net/exchangeKakao', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ code: kakaoCode, redirectUri: 'https://jbusinessero-ctrl.github.io/doolimoa_app/' })
                 }).then(async response => {
@@ -1272,13 +1279,13 @@
                         throw new Error(`로그인 서버 확인에 실패했습니다 (${result.error || response.status}).`);
                     }
                     await signInWithCustomToken(auth, result.customToken);
-                }).catch(error => {
+                })).catch(error => {
                     console.error('Kakao sign-in callback failed', error);
                     showKakaoLoginError(error.message || '카카오 로그인을 완료하지 못했습니다.');
                 });
             }
         }
-        onAuthStateChanged(auth, async (user) => {
+        authPersistenceReady.then(() => onAuthStateChanged(auth, async (user) => {
             window.firebaseUser = user;
             window.updateDateUI();
             if (user) {
@@ -1297,6 +1304,9 @@
                 document.getElementById('brandingStep').hidden = false;
                 document.getElementById('roomSetupStep').hidden = true;
             }
+        })).catch(error => {
+            console.error('Firebase Auth initialization failed', error);
+            showKakaoLoginError('로그인 세션을 초기화하지 못했습니다. 페이지를 새로고침해 주세요.');
         });
         window.setInterval(async () => {
             if (!auth.currentUser || !window.activeRoomCode || window.isSavingSecureLedger) return;
