@@ -34,6 +34,7 @@ class MainActivity : Activity() {
     private lateinit var offlineView: View
     private val io = Executors.newSingleThreadExecutor()
     private val prefs by lazy { getSharedPreferences("secure-auth", MODE_PRIVATE) }
+    private var pendingFirebaseCustomToken: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -78,8 +79,9 @@ class MainActivity : Activity() {
         webView.webViewClient = object : WebViewClient() {
             override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) { offlineView.visibility = View.GONE }
             override fun onPageFinished(view: WebView?, url: String?) {
-                val token = prefs.getString("pending_invite", null) ?: return
-                webView.evaluateJavascript("window.setPendingInviteToken && window.setPendingInviteToken(${JSONObject.quote(token)})", null)
+                prefs.getString("pending_invite", null)?.let { token ->
+                    webView.evaluateJavascript("window.setPendingInviteToken && window.setPendingInviteToken(${JSONObject.quote(token)})", null)
+                }
             }
             override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: android.webkit.WebResourceError?) {
                 if (request?.isForMainFrame == true) offlineView.visibility = View.VISIBLE
@@ -204,9 +206,30 @@ class MainActivity : Activity() {
                 connection.disconnect()
                 if (status !in 200..299) throw IllegalStateException("로그인 인증 서버가 요청을 거부했습니다.")
                 val customToken = JSONObject(body).getString("customToken")
-                runOnUiThread { notifyJs("window.onNativeFirebaseCustomToken(${JSONObject.quote(customToken)})") }
+                runOnUiThread { deliverFirebaseCustomToken(customToken) }
             } catch (error: Exception) {
                 runOnUiThread { notifyJs("window.onNativeAuthError(${JSONObject.quote(error.message ?: "로그인 인증에 실패했습니다.")})") }
+            }
+        }
+    }
+
+    /** The Firebase module callback may not exist yet after WebView/activity recreation. */
+    private fun deliverFirebaseCustomToken(token: String, attempt: Int = 0) {
+        if (!::webView.isInitialized) {
+            pendingFirebaseCustomToken = token
+            return
+        }
+        pendingFirebaseCustomToken = token
+        webView.evaluateJavascript("typeof window.onNativeFirebaseCustomToken === 'function' ? 'ready' : 'waiting'") { result ->
+            if (pendingFirebaseCustomToken != token) return@evaluateJavascript
+            if (result?.trim('"') == "ready") {
+                pendingFirebaseCustomToken = null
+                webView.evaluateJavascript("window.onNativeFirebaseCustomToken(${JSONObject.quote(token)})", null)
+            } else if (attempt < 60) {
+                webView.postDelayed({ deliverFirebaseCustomToken(token, attempt + 1) }, 250)
+            } else {
+                pendingFirebaseCustomToken = null
+                notifyJs("window.onNativeAuthError('Firebase 로그인 화면을 준비하지 못했습니다. 앱을 다시 열고 로그인해 주세요.')")
             }
         }
     }

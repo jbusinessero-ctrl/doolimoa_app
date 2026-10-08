@@ -1296,6 +1296,10 @@
         };
         window.startKakaoLogin = () => {
             if (window.NativeAuth?.loginWithKakao) {
+                const button = document.getElementById('kakaoLoginButton');
+                const help = document.getElementById('loginHelpText');
+                if (button) { button.disabled = true; button.textContent = '카카오 로그인 중...'; }
+                if (help) help.textContent = '로그인 확인이 끝나면 가계부로 이동합니다.';
                 window.NativeAuth.loginWithKakao();
                 return;
             }
@@ -1306,12 +1310,17 @@
         };
         window.onNativeFirebaseCustomToken = async (customToken) => {
             try { await authPersistenceReady; await signInWithCustomToken(auth, customToken); }
-            catch (error) { window.showToast(error.message || '로그인을 완료하지 못했습니다.'); }
+            catch (error) {
+                console.error('Native Firebase sign-in failed', { code: error?.code, message: error?.message });
+                showKakaoLoginError(`Firebase 로그인에 실패했습니다${error?.code ? ` (${error.code})` : ''}. ${error?.message || '다시 시도해 주세요.'}`);
+            }
         };
-        window.onNativeAuthError = (message) => window.showToast(message || '카카오 로그인을 완료하지 못했습니다.');
+        window.onNativeAuthError = (message) => showKakaoLoginError(message || '카카오 로그인을 완료하지 못했습니다.');
         const showKakaoLoginError = (message) => {
             const help = document.getElementById('loginHelpText');
             if (help) help.textContent = message;
+            const button = document.getElementById('kakaoLoginButton');
+            if (button) { button.disabled = false; button.textContent = '카카오로 시작하기'; }
             window.showToast(message);
         };
         const kakaoParams = new URLSearchParams(location.search);
