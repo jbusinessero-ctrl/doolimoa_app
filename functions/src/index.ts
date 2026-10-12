@@ -112,7 +112,7 @@ export const exchangeKakao = onRequest({ cors: ["https://jbusinessero-ctrl.githu
 });
 
 function emptyLedger() {
-  return { transactions: [], categoryBudgets: {}, overallBudget: 0, categories: null, paymentMethods: null, assets: { stocks: [], realEstate: [], vehicles: [], pensions: [], savings: [] }, savingsGoal: null };
+  return { transactions: [], categoryBudgets: {}, overallBudget: 0, categories: null, paymentMethods: null, assets: { stocks: [], realEstate: [], vehicles: [], pensions: [], savings: [] }, savingsGoals: [] };
 }
 
 async function callerLedger(uid: string) {
@@ -131,7 +131,7 @@ async function callerLedger(uid: string) {
 function normalizeSnapshot(input: unknown) {
   if (!input || typeof input !== "object") throw new HttpsError("invalid-argument", "가계부 데이터 형식이 올바르지 않습니다.");
   const body = input as Record<string, unknown>;
-  const fields = ["transactions", "categoryBudgets", "overallBudget", "categories", "paymentMethods", "ledgerName", "assets", "savingsGoal"];
+  const fields = ["transactions", "categoryBudgets", "overallBudget", "categories", "paymentMethods", "ledgerName", "assets"];
   const data: Record<string, unknown> = {};
   for (const field of fields) if (field in body) data[field] = body[field];
   if (data.transactions !== undefined && (!Array.isArray(data.transactions) || data.transactions.length > 5000)) throw new HttpsError("invalid-argument", "거래 내역이 너무 많거나 올바르지 않습니다.");
@@ -139,15 +139,29 @@ function normalizeSnapshot(input: unknown) {
   if (data.categoryBudgets !== undefined && (!data.categoryBudgets || typeof data.categoryBudgets !== "object")) throw new HttpsError("invalid-argument", "예산 데이터 형식이 올바르지 않습니다.");
   if (data.overallBudget !== undefined && (typeof data.overallBudget !== "number" || !Number.isFinite(data.overallBudget) || data.overallBudget < 0)) throw new HttpsError("invalid-argument", "예산 금액이 올바르지 않습니다.");
   if (data.ledgerName !== undefined && (typeof data.ledgerName !== "string" || !data.ledgerName.trim() || data.ledgerName.length > 60)) throw new HttpsError("invalid-argument", "가계부 이름은 1~60자로 입력해 주세요.");
-  if (data.savingsGoal !== undefined) data.savingsGoal = normalizeSavingsGoal(data.savingsGoal);
+  if ("savingsGoals" in body || "savingsGoal" in body) {
+    data.savingsGoals = normalizeSavingsGoals(body.savingsGoals ?? (body.savingsGoal == null ? [] : [body.savingsGoal]));
+    data.savingsGoal = null;
+  }
   if (Buffer.byteLength(JSON.stringify(data), "utf8") > MAX_LEDGER_BYTES) throw new HttpsError("resource-exhausted", "저장 가능한 가계부 데이터 크기를 초과했습니다.");
   return data;
 }
 
-function normalizeSavingsGoal(input: unknown) {
-  if (input === null) return null;
+function normalizeSavingsGoals(input: unknown) {
+  if (!Array.isArray(input) || input.length > 20) throw new HttpsError("invalid-argument", "저축 목표는 최대 20개까지 설정할 수 있습니다.");
+  const ids = new Set<string>();
+  return input.map((item, index) => {
+    const goal = normalizeSavingsGoal(item, index);
+    if (ids.has(goal.id)) throw new HttpsError("invalid-argument", "저축 목표 식별자가 중복되었습니다.");
+    ids.add(goal.id);
+    return goal;
+  });
+}
+
+function normalizeSavingsGoal(input: unknown, index: number) {
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new HttpsError("invalid-argument", "저축 목표 데이터 형식이 올바르지 않습니다.");
   const goal = input as Record<string, unknown>;
+  const id = typeof goal.id === "string" && /^[A-Za-z0-9_-]{1,80}$/.test(goal.id) ? goal.id : `legacy-${index}`;
   const title = typeof goal.title === "string" ? goal.title.trim() : "";
   const targetAmount = goal.targetAmount;
   const currentAmount = goal.currentAmount;
@@ -162,7 +176,7 @@ function normalizeSavingsGoal(input: unknown) {
     || !parsedDate || Number.isNaN(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== targetDate) {
     throw new HttpsError("invalid-argument", "목표 날짜를 올바르게 입력해 주세요.");
   }
-  return { title, targetAmount, currentAmount, targetDate };
+  return { id, title, targetAmount, currentAmount, targetDate };
 }
 
 // Turn on enforceAppCheck after the Android Play Integrity provider is configured.
@@ -336,6 +350,7 @@ function isEmptyLedger(data: unknown): boolean {
     && Number(value.overallBudget || 0) === 0
     && Object.keys((value.categoryBudgets as object) || {}).length === 0
     && (!value.assets || Object.values(value.assets as Record<string, unknown>).every((items) => !Array.isArray(items) || items.length === 0))
+    && (!Array.isArray(value.savingsGoals) || value.savingsGoals.length === 0)
     && value.savingsGoal == null
     && (value.categories == null) && (value.paymentMethods == null);
 }

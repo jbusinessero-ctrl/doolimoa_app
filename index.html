@@ -54,6 +54,10 @@
         .savings-goal-card { overflow: hidden; border: 1px solid #f1dfb7; border-radius: 22px; background: linear-gradient(130deg,#fff8e5 0%,#fff 70%); box-shadow: 0 8px 24px rgba(86,67,34,.06); }
         .savings-goal-track { height: 10px; overflow: hidden; border-radius: 999px; background: #f4ead2; }
         .savings-goal-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg,#f2a900,#ffcf4d); transition: width .35s ease; }
+        .kpi-expense-accent { color: #b87900 !important; }
+        .kpi-expense-track { background: #fff1c2; }
+        .kpi-expense-fill { background: linear-gradient(90deg,#f2a900,#ffbb0c); }
+        .kpi-savings-accent { color: #8b6a1c !important; }
         .calendar-day-label.is-today { color: #9b6900; background: #ffe9a8; border-radius: 999px; padding: 2px 6px; }
         .calendar-month-summary { background: #fff2c9; color: #805500; border-color: #f2dda0; }
         .calendar-month-summary .fa-heart { color: #ffbb0c !important; }
@@ -182,15 +186,15 @@
                     <span class="text-xs font-bold text-slate-500 block mb-1">이번 달 총 수입</span>
                     <div class="kpi-value text-2xl font-black text-slate-800" id="kpiIncome">0 원</div>
                 </div>
-                <div class="kpi-card liquid-glass p-5 cursor-pointer hover:border-rose-300" onclick="openBudgetModal()">
-                    <div class="flex justify-between items-center mb-1"><span class="text-xs font-bold text-slate-500">이번 달 총 지출</span><span id="kpiExpensePercent" class="text-xs font-bold text-rose-600">0%</span></div>
-                    <div class="kpi-value text-2xl font-black text-rose-600" id="kpiExpense">0 원</div>
-                    <div class="w-full bg-slate-200/70 h-2 rounded-full mt-2 overflow-hidden"><div id="kpiExpenseBar" class="bg-rose-500 h-full rounded-full transition-all duration-300" style="width:0%"></div></div>
+                <div class="kpi-card liquid-glass p-5 cursor-pointer hover:border-amber-300" onclick="openBudgetModal()">
+                    <div class="flex justify-between items-center mb-1"><span class="text-xs font-bold text-slate-500">이번 달 총 지출</span><span id="kpiExpensePercent" class="kpi-expense-accent text-xs font-bold">0%</span></div>
+                    <div class="kpi-value kpi-expense-accent text-2xl font-black" id="kpiExpense">0 원</div>
+                    <div class="kpi-expense-track w-full h-2 rounded-full mt-2 overflow-hidden"><div id="kpiExpenseBar" class="kpi-expense-fill h-full rounded-full transition-all duration-300" style="width:0%"></div></div>
                 </div>
                 <div class="kpi-card liquid-glass p-5">
                     <span class="text-xs font-bold text-slate-500 block mb-1">총 저축 / 투자</span>
-                    <div class="kpi-value text-2xl font-black text-blue-600" id="kpiSavings">0 원</div>
-                    <div class="mt-2 text-xs text-slate-500">수입 대비 저축률: <b id="kpiSavingsRate" class="text-blue-600">0%</b></div>
+                    <div class="kpi-value kpi-savings-accent text-2xl font-black" id="kpiSavings">0 원</div>
+                    <div class="mt-2 text-xs text-slate-500">수입 대비 저축률: <b id="kpiSavingsRate" class="kpi-savings-accent">0%</b></div>
                 </div>
                 <div class="kpi-card liquid-glass p-5 cursor-pointer hover:border-purple-300" onclick="openBudgetModal()">
                     <span class="text-xs font-bold text-slate-500 block mb-1">남은 지출 예산</span>
@@ -202,7 +206,7 @@
             <section id="savingsGoalSection" class="savings-goal-card p-5 sm:p-6">
                 <div class="flex items-center justify-between gap-3 mb-4">
                     <div class="flex items-center gap-3 min-w-0"><span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-700"><i class="fa-solid fa-bullseye text-lg"></i></span><div class="min-w-0"><h2 class="font-extrabold text-slate-800">목표 저축 챌린지</h2><p class="text-xs text-slate-500 mt-0.5">함께 모으는 신혼여행·주택자금</p></div></div>
-                    <button type="button" onclick="openSavingsGoalModal()" id="savingsGoalAction" class="shrink-0 px-3 py-2 rounded-xl bg-amber-100 text-amber-800 text-xs font-extrabold">목표 설정</button>
+                    <button type="button" onclick="openSavingsGoalModal()" id="savingsGoalAction" class="shrink-0 px-3 py-2 rounded-xl bg-amber-400 text-amber-950 text-xs font-extrabold"><i class="fa-solid fa-plus mr-1"></i>목표 추가</button>
                 </div>
                 <div id="savingsGoalContent"></div>
             </section>
@@ -354,7 +358,7 @@
 
     <div id="savingsGoalModal" class="fixed inset-0 z-50 hidden bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4">
         <form onsubmit="saveSavingsGoal(event)" class="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-amber-100 p-6 space-y-4">
-            <div><h3 class="text-lg font-black text-slate-800">저축 목표 챌린지</h3><p class="mt-1 text-xs leading-5 text-slate-500">함께 모을 목표와 목표일을 설정하세요.</p></div>
+            <input id="savingsGoalId" type="hidden"><div><h3 id="savingsGoalModalTitle" class="text-lg font-black text-slate-800">저축 목표 챌린지</h3><p class="mt-1 text-xs leading-5 text-slate-500">함께 모을 목표와 목표일을 설정하세요.</p></div>
             <div><label for="savingsGoalTitle" class="block mb-1 text-xs font-bold text-slate-600">목표 제목</label><input id="savingsGoalTitle" type="text" maxlength="60" required class="w-full p-3 rounded-xl bg-white border border-slate-200 text-sm font-bold" placeholder="예: 신혼여행 자금"></div>
             <div class="grid grid-cols-2 gap-3"><div><label for="savingsGoalTargetAmount" class="block mb-1 text-xs font-bold text-slate-600">목표 금액 (원)</label><input id="savingsGoalTargetAmount" type="number" min="1" step="1" inputmode="numeric" required class="w-full p-3 rounded-xl border border-slate-200 text-sm font-bold" placeholder="20,000,000"></div><div><label for="savingsGoalCurrentAmount" class="block mb-1 text-xs font-bold text-slate-600">현재 모은 금액 (원)</label><input id="savingsGoalCurrentAmount" type="number" min="0" step="1" inputmode="numeric" required class="w-full p-3 rounded-xl border border-slate-200 text-sm font-bold" placeholder="0"></div></div>
             <div><label for="savingsGoalTargetDate" class="block mb-1 text-xs font-bold text-slate-600">목표 날짜</label><input id="savingsGoalTargetDate" type="date" required class="w-full p-3 rounded-xl border border-slate-200 text-sm font-bold"></div>
@@ -448,7 +452,7 @@
 
         window.paymentMethods = ['공동 카드', '공동 계좌이체', '개인 카드 1', '개인 카드 2', '현금/제로페이'];
         window.categoryBudgets = {};
-        window.savingsGoal = null;
+        window.savingsGoals = [];
         window.overallBudget = 0;
         window.transactions = [];
         window.activeRoomCode = '';
@@ -645,29 +649,30 @@
 
         window.renderSavingsGoal = () => {
             const content = document.getElementById('savingsGoalContent');
-            const action = document.getElementById('savingsGoalAction');
             if (!content) return;
-            const goal = window.savingsGoal;
-            if (!goal) {
-                if (action) action.textContent = '목표 설정';
+            const goals = Array.isArray(window.savingsGoals) ? window.savingsGoals : [];
+            if (!goals.length) {
                 content.innerHTML = '<button type="button" onclick="openSavingsGoalModal()" class="w-full rounded-2xl border border-dashed border-amber-300 bg-white/70 px-4 py-5 text-left"><span class="block text-sm font-bold text-slate-700">우리의 다음 목표를 함께 정해보세요</span><span class="mt-1 block text-xs text-slate-500">목표 금액과 날짜를 설정하고 달성률을 확인할 수 있어요.</span></button>';
                 return;
             }
-            if (action) action.textContent = '목표 수정';
-            const target = Number(goal.targetAmount) || 0;
-            const current = Number(goal.currentAmount) || 0;
-            const percent = target > 0 ? Math.floor(current / target * 100) : 0;
-            const width = Math.min(100, Math.max(0, percent));
-            const [targetYear, targetMonth, targetDate] = goal.targetDate.split('-').map(Number);
-            const today = new Date();
-            const dayDiff = Math.round((Date.UTC(targetYear, targetMonth - 1, targetDate) - Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())) / 86400000);
-            const dday = dayDiff > 0 ? `D-${dayDiff}` : dayDiff === 0 ? 'D-Day' : `D+${Math.abs(dayDiff)}`;
-            const complete = current >= target;
-            content.innerHTML = `<div class="rounded-2xl border border-white bg-white/75 p-4 sm:p-5"><div class="flex items-start justify-between gap-3"><div class="min-w-0"><h3 class="truncate text-base font-extrabold text-slate-800">${escapeHtml(goal.title)}</h3><p class="mt-1 text-xs text-slate-500">목표일 ${escapeHtml(goal.targetDate)}</p></div><span class="shrink-0 rounded-full ${complete ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'} px-3 py-1.5 text-xs font-extrabold">${complete ? '달성 완료' : dday}</span></div><div class="mt-4 flex items-end justify-between gap-2"><strong class="text-lg font-black text-slate-800">${formatNumberOnly(current)}<span class="ml-1 text-xs font-bold text-slate-500">원 모음</span></strong><span class="text-sm font-extrabold text-amber-700">${percent}%</span></div><div class="savings-goal-track mt-2"><div class="savings-goal-fill" role="progressbar" aria-label="저축 목표 달성률" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${width}" style="width:${width}%"></div></div><div class="mt-2 flex justify-between text-xs text-slate-500"><span>목표 ${formatNumberOnly(target)}원</span><span>${complete ? '목표를 달성했어요!' : `남은 금액 ${formatNumberOnly(Math.max(0, target-current))}원`}</span></div></div>`;
+            content.innerHTML = goals.map(goal => {
+                const target = Number(goal.targetAmount) || 0;
+                const current = Number(goal.currentAmount) || 0;
+                const percent = target > 0 ? Math.floor(current / target * 100) : 0;
+                const width = Math.min(100, Math.max(0, percent));
+                const [targetYear, targetMonth, targetDate] = goal.targetDate.split('-').map(Number);
+                const today = new Date();
+                const dayDiff = Math.round((Date.UTC(targetYear, targetMonth - 1, targetDate) - Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())) / 86400000);
+                const dday = dayDiff > 0 ? `D-${dayDiff}` : dayDiff === 0 ? 'D-Day' : `D+${Math.abs(dayDiff)}`;
+                const complete = current >= target;
+                return `<article class="rounded-2xl border border-white bg-white/75 p-4 sm:p-5"><div class="flex items-start justify-between gap-3"><div class="min-w-0"><h3 class="truncate text-base font-extrabold text-slate-800">${escapeHtml(goal.title)}</h3><p class="mt-1 text-xs text-slate-500">목표일 ${escapeHtml(goal.targetDate)}</p></div><div class="flex shrink-0 items-center gap-2"><span class="rounded-full ${complete ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'} px-3 py-1.5 text-xs font-extrabold">${complete ? '달성 완료' : dday}</span><button type="button" onclick="editSavingsGoal('${escapeHtml(goal.id)}')" aria-label="${escapeHtml(goal.title)} 목표 수정" class="h-8 w-8 rounded-lg bg-amber-50 text-amber-800"><i class="fa-solid fa-pen"></i></button><button type="button" onclick="deleteSavingsGoal('${escapeHtml(goal.id)}')" aria-label="${escapeHtml(goal.title)} 목표 삭제" class="h-8 w-8 rounded-lg bg-rose-50 text-rose-600"><i class="fa-solid fa-trash"></i></button></div></div><div class="mt-4 flex items-end justify-between gap-2"><strong class="text-lg font-black text-slate-800">${formatNumberOnly(current)}<span class="ml-1 text-xs font-bold text-slate-500">원 모음</span></strong><span class="text-sm font-extrabold text-amber-700">${percent}%</span></div><div class="savings-goal-track mt-2"><div class="savings-goal-fill" role="progressbar" aria-label="${escapeHtml(goal.title)} 달성률" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${width}" style="width:${width}%"></div></div><div class="mt-2 flex justify-between text-xs text-slate-500"><span>목표 ${formatNumberOnly(target)}원</span><span>${complete ? '목표를 달성했어요!' : `남은 금액 ${formatNumberOnly(Math.max(0, target-current))}원`}</span></div></article>`;
+            }).join('');
         };
 
-        window.openSavingsGoalModal = () => {
-            const goal = window.savingsGoal || {};
+        window.openSavingsGoalModal = (goal = null) => {
+            goal = goal || {};
+            document.getElementById('savingsGoalId').value = goal.id || '';
+            document.getElementById('savingsGoalModalTitle').textContent = goal.id ? '저축 목표 수정' : '저축 목표 추가';
             document.getElementById('savingsGoalTitle').value = goal.title || '';
             document.getElementById('savingsGoalTargetAmount').value = goal.targetAmount ?? '';
             document.getElementById('savingsGoalCurrentAmount').value = goal.currentAmount ?? 0;
@@ -678,6 +683,26 @@
             window.openModal('savingsGoalModal');
         };
 
+        window.editSavingsGoal = (id) => {
+            const goal = window.savingsGoals.find(item => item.id === id);
+            if (goal) window.openSavingsGoalModal(goal);
+        };
+
+        window.deleteSavingsGoal = async (id) => {
+            const goal = window.savingsGoals.find(item => item.id === id);
+            if (!goal || !window.confirm(`'${goal.title}' 목표를 삭제할까요?`)) return;
+            const previous = window.savingsGoals;
+            window.savingsGoals = previous.filter(item => item.id !== id);
+            window.renderSavingsGoal();
+            const saved = await window.saveStateToFirestore();
+            if (!saved) {
+                await window.loadSecureLedger().catch(() => {});
+                window.renderSavingsGoal();
+                return;
+            }
+            window.showToast('목표를 삭제했습니다.');
+        };
+
         window.saveSavingsGoal = async (event) => {
             event.preventDefault();
             const goal = {
@@ -686,11 +711,18 @@
                 currentAmount: Number(document.getElementById('savingsGoalCurrentAmount').value),
                 targetDate: document.getElementById('savingsGoalTargetDate').value
             };
+            const goalId = document.getElementById('savingsGoalId').value || crypto.randomUUID();
             const error = document.getElementById('savingsGoalError');
             if (!goal.title || goal.title.length > 60 || !Number.isSafeInteger(goal.targetAmount) || goal.targetAmount <= 0 || !Number.isSafeInteger(goal.currentAmount) || goal.currentAmount < 0 || !goal.targetDate) {
                 error.textContent = '제목, 금액, 목표 날짜를 확인해 주세요.'; error.classList.remove('hidden'); return;
             }
-            window.savingsGoal = goal;
+            const existingIndex = window.savingsGoals.findIndex(item => item.id === goalId);
+            if (existingIndex < 0 && window.savingsGoals.length >= 20) {
+                error.textContent = '목표는 최대 20개까지 등록할 수 있습니다.'; error.classList.remove('hidden'); return;
+            }
+            goal.id = goalId;
+            if (existingIndex >= 0) window.savingsGoals[existingIndex] = goal;
+            else window.savingsGoals.push(goal);
             window.renderSavingsGoal();
             const saved = await window.saveStateToFirestore();
             if (!saved) {
@@ -1373,7 +1405,7 @@
             window.lastLedgerRevision = result.revision || 1;
             window.transactions = Array.isArray(data.transactions) ? data.transactions : [];
             window.categoryBudgets = data.categoryBudgets || {};
-            window.savingsGoal = data.savingsGoal || null;
+            window.savingsGoals = Array.isArray(data.savingsGoals) ? data.savingsGoals : (data.savingsGoal ? [{ id: 'legacy-goal', ...data.savingsGoal }] : []);
             window.overallBudget = data.overallBudget || 0;
             if (data.categories) window.CATEGORIES = data.categories;
             if (data.paymentMethods) window.paymentMethods = data.paymentMethods;
@@ -1386,7 +1418,7 @@
         window.saveStateToFirestore = async () => {
             if (!auth.currentUser) return false;
             try {
-                const data = { transactions: window.transactions, categoryBudgets: window.categoryBudgets, overallBudget: window.overallBudget, categories: window.CATEGORIES, paymentMethods: window.paymentMethods, ledgerName: window.ledgerName, assets: window.assets, savingsGoal: window.savingsGoal };
+                const data = { transactions: window.transactions, categoryBudgets: window.categoryBudgets, overallBudget: window.overallBudget, categories: window.CATEGORIES, paymentMethods: window.paymentMethods, ledgerName: window.ledgerName, assets: window.assets, savingsGoals: window.savingsGoals };
                 window.isSavingSecureLedger = true;
                 await window.callLedgerApi('ledger.write', { data, expectedRevision: window.lastLedgerRevision || 1 });
                 window.lastLedgerRevision = (window.lastLedgerRevision || 0) + 1;
