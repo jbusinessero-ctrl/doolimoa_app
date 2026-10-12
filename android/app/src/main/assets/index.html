@@ -19,22 +19,21 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=Noto+Sans+KR:wght@400;600;800&display=swap" rel="stylesheet">
     
     <style>
-        body { font-family: 'Plus Jakarta Sans', 'Noto Sans KR', sans-serif; background: linear-gradient(135deg, #eef2ff 0%, #fae8ff 40%, #fce7f3 70%, #e0f2fe 100%); background-attachment: fixed; min-height: 100vh; color: #1e293b; }
+        body { font-family: 'Plus Jakarta Sans', 'Noto Sans KR', sans-serif; background: linear-gradient(145deg, #fffaf0 0%, #fff6e3 58%, #f8f1e3 100%); background-attachment: fixed; min-height: 100vh; color: #332f27; }
         .ambient-blob { position: fixed; border-radius: 50%; filter: blur(70px); z-index: 0; pointer-events: none; }
-        .blob-1 { top: -10%; left: 10%; width: 400px; height: 400px; background: radial-gradient(circle, rgba(192,132,252,0.4), rgba(255,255,255,0)); }
-        .blob-2 { top: 40%; right: -5%; width: 450px; height: 450px; background: radial-gradient(circle, rgba(129,140,248,0.35), rgba(255,255,255,0)); }
-        .liquid-glass { background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(20px) saturate(180%); border: 1px solid rgba(255, 255, 255, 0.85); box-shadow: 0 10px 30px -5px rgba(18, 38, 63, 0.05); border-radius: 24px; position: relative; }
-        .liquid-glass-header { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(24px); border-bottom: 1px solid rgba(255, 255, 255, 0.85); }
-        .liquid-pill { background: rgba(255, 255, 255, 0.65); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.9); }
-        .liquid-btn { background: linear-gradient(135deg, rgba(255,255,255,0.85), rgba(255,255,255,0.45)); border: 1px solid rgba(255, 255, 255, 0.9); transition: all 0.2s ease; }
-        .liquid-btn:hover { transform: translateY(-1px); background: rgba(255,255,255,0.95); }
-        .liquid-btn-primary { background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%); color: white; border: 1px solid rgba(255,255,255,0.4); box-shadow: 0 6px 20px rgba(244, 63, 94, 0.3); }
+        .blob-1, .blob-2 { display: none; }
+        .liquid-glass { background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(16px); border: 1px solid #f0e7d7; box-shadow: 0 8px 24px rgba(86, 67, 34, 0.07); border-radius: 22px; position: relative; }
+        .liquid-glass-header { background: rgba(255, 250, 239, 0.97); backdrop-filter: blur(18px); border-bottom: 1px solid #eee4d2; }
+        .liquid-pill { background: rgba(255, 253, 248, 0.96); backdrop-filter: blur(10px); border: 1px solid #eee5d5; }
+        .liquid-btn { background: #fffdf8; border: 1px solid #eee5d5; transition: all 0.2s ease; }
+        .liquid-btn:hover { transform: translateY(-1px); background: #fff8e8; }
+        .liquid-btn-primary { background: linear-gradient(135deg, #ffc83d 0%, #f5aa00 100%); color: #352809; border: 1px solid rgba(255,255,255,0.75); box-shadow: 0 5px 14px rgba(217, 151, 0, 0.22); }
         .pulse-dot { animation: pulse 2s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.2); } }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-thumb { background: rgba(203, 213, 225, 0.8); border-radius: 99px; }
-        .onboarding-backdrop { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 20px; background: linear-gradient(135deg, #fff1f2 0%, #f5f3ff 55%, #eff6ff 100%); }
-        .onboarding-card { width: min(100%, 440px); padding: 28px; border: 1px solid rgba(255,255,255,.9); border-radius: 28px; background: rgba(255,255,255,.88); box-shadow: 0 24px 70px rgba(30,41,59,.14); }
+        .onboarding-backdrop { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 20px; background: linear-gradient(145deg, #fff9e8 0%, #fff4d7 100%); }
+        .onboarding-card { width: min(100%, 440px); padding: 28px; border: 1px solid #f0e5d0; border-radius: 26px; background: rgba(255,255,255,.95); box-shadow: 0 20px 56px rgba(94,72,28,.12); }
         .onboarding-step[hidden] { display: none !important; }
         .header-title { max-width: min(56vw, 420px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .header-room-change { white-space: nowrap; word-break: keep-all; flex: 0 0 auto; }
@@ -44,8 +43,22 @@
         .calendar-day-amount { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .bottom-nav > button { width: 100%; min-width: 0; justify-self: stretch; }
         .bottom-nav > button:nth-child(3) { width: 48px; justify-self: center; margin-top: 0; }
+        button.bg-rose-500, button.bg-rose-600, header button.bg-rose-500 { background: linear-gradient(135deg, #ffc83d 0%, #f5aa00 100%) !important; color: #352809 !important; border-color: rgba(255,255,255,.75) !important; box-shadow: 0 5px 14px rgba(217,151,0,.2); }
+        .bottom-nav > button:nth-child(3) { background: linear-gradient(135deg, #ffc83d 0%, #f5aa00 100%) !important; color: #352809 !important; }
+        .bottom-nav .text-rose-600 { color: #b87900 !important; }
+        header .bg-gradient-to-tr { background: linear-gradient(135deg, #f6b500, #ffd66e) !important; }
+        .controls-month { box-shadow: 0 2px 8px rgba(86,67,34,.04); }
+        .budget-heading .fa-chart-line, #transactionModalTitle .fa-pen-to-square { color: #d18a00 !important; }
+        body .text-slate-800 { color: #383329 !important; }
+        body .text-slate-700 { color: #575142 !important; }
+        body .text-slate-600 { color: #706957 !important; }
+        body .text-slate-500 { color: #89816f !important; }
+        body .text-slate-400 { color: #a49c8b !important; }
+        body .border-slate-200 { border-color: #eee5d5 !important; }
+        button.bg-slate-800, button.bg-slate-900 { background: #f7edd6 !important; color: #5c481f !important; border: 1px solid #eee0c1 !important; }
+        #overallBudgetInput, .budget-input { accent-color: #e5a000; }
         @media (max-width: 639px) {
-            body { padding-bottom: 88px; }
+            body { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
             header .header-inner { min-height: 72px; height: auto; padding: 9px 12px; gap: 8px; }
             .header-title { max-width: 54vw; font-size: clamp(11px, 3.4vw, 14px); }
             .header-room-change { padding: 4px 7px; font-size: 10px; }
@@ -339,10 +352,10 @@
             <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center"><h3 class="font-bold text-slate-800 text-sm"><i class="fa-solid fa-sliders text-rose-500 mr-2"></i>목표 예산 세팅</h3><button onclick="closeModal('budgetModal')" class="text-slate-400"><i class="fa-solid fa-xmark text-lg"></i></button></div>
             <div class="p-6 overflow-y-auto space-y-4 flex-1 text-xs">
                 <form id="budgetForm" onsubmit="handleBudgetSubmit(event)" class="space-y-4">
-                    <div class="p-4 bg-gradient-to-r from-rose-50 to-purple-50 rounded-2xl border border-rose-100 space-y-2"><div class="flex justify-between items-center"><label class="font-bold">이번 달 전체 총 목표 예산 (원)</label><button type="button" onclick="calcTotalFromCategories()" class="text-rose-600 font-bold hover:underline"><i class="fa-solid fa-calculator mr-1"></i>카테고리 합계로 설정</button></div><input type="number" id="overallBudgetInput" step="10000" min="0" class="w-full p-2.5 bg-white border border-rose-200 rounded-xl font-black text-sm"></div>
+                    <div class="p-4 rounded-2xl border space-y-2" style="background:#fff8e7;border-color:#f1dfb7"><div class="flex justify-between items-center gap-2"><label class="font-bold">이번 달 전체 총 목표 예산 (원)</label><button type="button" onclick="calcTotalFromCategories()" class="text-amber-700 font-bold hover:underline whitespace-nowrap"><i class="fa-solid fa-calculator mr-1"></i>카테고리 합계로 설정</button></div><input type="number" id="overallBudgetInput" inputmode="numeric" step="1000" min="0" class="w-full p-2.5 bg-white border border-amber-200 rounded-xl font-black text-sm"><p class="text-[10px] text-slate-500">1,000원 단위로 입력할 수 있습니다.</p></div>
                     <div class="font-bold text-slate-700">카테고리별 예산 세부 설정</div>
                     <div id="budgetInputsContainer" class="space-y-2"></div>
-                    <div class="pt-2 flex justify-end space-x-2"><button type="button" onclick="closeModal('budgetModal')" class="px-4 py-2 rounded-xl bg-slate-200 font-bold">취소</button><button type="submit" class="px-5 py-2 rounded-xl bg-rose-500 text-white font-bold shadow-md">저장하기</button></div>
+                <div class="pt-2 flex justify-end space-x-2"><button type="button" onclick="closeModal('budgetModal')" class="px-4 py-2 rounded-xl bg-slate-200 font-bold">취소</button><button type="submit" class="px-5 py-2 rounded-xl bg-rose-500 text-white font-bold shadow-md">저장하기</button></div>
                 </form>
             </div>
         </div>
@@ -1063,7 +1076,7 @@
             allCats.forEach(cat => {
                 const val = window.categoryBudgets[cat.name] || 0; sum += val;
                 const div = document.createElement('div'); div.className = 'flex justify-between items-center p-2 liquid-pill rounded-xl text-xs';
-                div.innerHTML = `<span><i class="fa-solid ${cat.icon} mr-1.5" style="color:${cat.color}"></i>${cat.name}</span><input type="number" data-cat="${cat.name}" value="${val}" step="10000" min="0" oninput="updateCategorySumDisplay()" class="budget-input w-24 p-1 rounded-lg text-right font-bold bg-white border border-slate-200">`;
+                div.innerHTML = `<span><i class="fa-solid ${cat.icon} mr-1.5" style="color:${cat.color}"></i>${cat.name}</span><input type="number" inputmode="numeric" data-cat="${cat.name}" value="${val}" step="1000" min="0" oninput="updateCategorySumDisplay()" class="budget-input w-24 p-1 rounded-lg text-right font-bold bg-white border border-slate-200">`;
                 container.appendChild(div);
             });
             document.getElementById('overallBudgetInput').value = window.overallBudget > 0 ? window.overallBudget : sum;

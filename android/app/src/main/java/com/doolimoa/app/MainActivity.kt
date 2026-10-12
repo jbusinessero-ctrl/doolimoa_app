@@ -40,12 +40,27 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.statusBarColor = Color.rgb(255, 241, 242)
-        window.navigationBarColor = Color.WHITE
-        window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+        val appSurface = Color.rgb(255, 249, 235)
+        window.statusBarColor = appSurface
+        window.navigationBarColor = appSurface
+        window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or
+            View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR or
+            View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
+            View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
+            View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
         if (BuildConfig.KAKAO_NATIVE_KEY.isNotBlank()) KakaoSdk.init(applicationContext, BuildConfig.KAKAO_NATIVE_KEY)
 
         val root = FrameLayout(this)
+        root.setBackgroundColor(appSurface)
+        root.setOnApplyWindowInsetsListener { view, insets ->
+            view.setPadding(
+                insets.systemWindowInsetLeft,
+                insets.systemWindowInsetTop,
+                insets.systemWindowInsetRight,
+                insets.systemWindowInsetBottom
+            )
+            insets
+        }
         webView = WebView(this)
         val progress = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
             max = 100
@@ -61,6 +76,7 @@ class MainActivity : Activity() {
         }
         root.addView(offlineView, FrameLayout.LayoutParams(-1, -1))
         setContentView(root)
+        root.requestApplyInsets()
 
         webView.settings.javaScriptEnabled = true
         webView.settings.domStorageEnabled = true
