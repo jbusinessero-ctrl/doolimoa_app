@@ -20,8 +20,8 @@ android {
         applicationId 'com.doolimoa.app'
         minSdk 24
         targetSdk 36
-        versionCode 12
-        versionName '1.0.12'
+        versionCode 13
+        versionName '1.0.13'
         manifestPlaceholders = [KAKAO_NATIVE_KEY: kakaoNativeKey]
         buildConfigField 'String', 'KAKAO_NATIVE_KEY', '"' + kakaoNativeKey + '"'
         buildConfigField 'String', 'KAKAO_EXCHANGE_URL', '"' + kakaoExchangeUrl + '"'

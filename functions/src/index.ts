@@ -125,7 +125,7 @@ async function callerLedger(uid: string) {
   if (!snap.exists || snap.get("status") !== "active" || !Array.isArray(members) || !members.includes(uid)) {
     throw new HttpsError("permission-denied", "가계부 접근 권한이 없습니다.");
   }
-  return { ref, snap, ledgerId, members: members as string[] };
+  return { ref, snap, ledgerId, members: members as string[], userSnap };
 }
 
 function normalizeSnapshot(input: unknown) {
@@ -179,10 +179,76 @@ function normalizeSavingsGoal(input: unknown, index: number) {
   return { id, title, targetAmount, currentAmount, targetDate };
 }
 
+async function deleteAccount(uid: string) {
+  const jobRef = db.collection("accountDeletionJobs").doc(uid);
+  const existingJob = await jobRef.get();
+  if (!existingJob.exists) {
+    const userRef = db.collection("users").doc(uid);
+    const userSnap = await userRef.get();
+    const ledgerId = userSnap.get("ledgerId");
+    if (!userSnap.exists || typeof ledgerId !== "string" || !ledgerId) throw new HttpsError("failed-precondition", "계정의 가계부 연결 정보를 확인할 수 없습니다.");
+    const ledgerRef = db.collection("ledgers").doc(ledgerId);
+    const identitySnaps = await db.collection("kakaoIdentityHashes").where("uid", "==", uid).get();
+    const replacementLedgerRef = db.collection("ledgers").doc();
+    await db.runTransaction(async (tx) => {
+      const [currentUser, currentLedger, currentJob] = await Promise.all([tx.get(userRef), tx.get(ledgerRef), tx.get(jobRef)]);
+      if (currentJob.exists) return;
+      const members = currentLedger.get("memberUids") as unknown;
+      if (!currentUser.exists || currentUser.get("ledgerId") !== ledgerId || !currentLedger.exists
+        || currentLedger.get("status") !== "active" || !Array.isArray(members) || !members.includes(uid)) {
+        throw new HttpsError("failed-precondition", "계정 또는 공유 가계부 상태가 변경되어 탈퇴를 진행할 수 없습니다.");
+      }
+      const partnerUid = members.find((member) => member !== uid) as string | undefined;
+      if (partnerUid) {
+        const partnerRef = db.collection("users").doc(partnerUid);
+        const partnerSnap = await tx.get(partnerRef);
+        if (!partnerSnap.exists) throw new HttpsError("failed-precondition", "파트너 계정 정보를 확인할 수 없습니다.");
+        const now = Timestamp.now();
+        tx.create(replacementLedgerRef, {
+          ownerUid: partnerUid, memberUids: [partnerUid], status: "active",
+          profile: { ledgerName: "둘이모아 가계부" }, data: emptyLedger(),
+          createdAt: now, updatedAt: now, revision: 1
+        });
+        tx.update(partnerRef, { ledgerId: replacementLedgerRef.id, status: "active" });
+      }
+      tx.update(ledgerRef, { status: "deleting", memberUids: [], activeInviteHash: FieldValue.delete(), updatedAt: FieldValue.serverTimestamp() });
+      tx.delete(userRef);
+      identitySnaps.docs.forEach((identity) => tx.delete(identity.ref));
+      tx.create(jobRef, { uid, ledgerId, startedAt: FieldValue.serverTimestamp() });
+    });
+  }
+
+  const job = await jobRef.get();
+  const ledgerId = job.get("ledgerId");
+  if (typeof ledgerId !== "string" || !ledgerId) throw new HttpsError("internal", "탈퇴 정리 작업 정보를 확인할 수 없습니다.");
+  const ledgerRef = db.collection("ledgers").doc(ledgerId);
+  await db.recursiveDelete(ledgerRef);
+  let invites = await db.collection("inviteTokens").where("ledgerId", "==", ledgerId).limit(400).get();
+  while (!invites.empty) {
+    const batch = db.batch();
+    invites.docs.forEach((invite) => batch.delete(invite.ref));
+    await batch.commit();
+    invites = await db.collection("inviteTokens").where("ledgerId", "==", ledgerId).limit(400).get();
+  }
+  const privateCounterActions = ["account-delete", "ledger.read", "ledger.write", "invite.create", "ledger.disconnect", "invite.preview", "invite.accept"];
+  await Promise.all(privateCounterActions.map((action) => db.collection("securityCounters").doc(hash(`${action}:${uid}`)).delete()));
+  try { await getAuth().deleteUser(uid); }
+  catch (error) {
+    if ((error as { code?: string })?.code !== "auth/user-not-found") throw error;
+  }
+  await jobRef.delete();
+}
+
 // Turn on enforceAppCheck after the Android Play Integrity provider is configured.
-export const ledgerApi = onCall({ enforceAppCheck: false, maxInstances: 50 }, async (request) => {
+export const ledgerApi = onCall({ enforceAppCheck: false, maxInstances: 50, timeoutSeconds: 540 }, async (request) => {
   const uid = requiredUid(request.auth?.uid);
   const action = request.data?.action;
+
+  if (action === "account.delete") {
+    await consumeAttempt(`account-delete:${uid}`, 3, 60_000);
+    await deleteAccount(uid);
+    return { deleted: true };
+  }
 
   if (action === "invite.preview") {
     await consumeAttempt(`invite-preview:${uid}`, 10, 60_000);
@@ -266,10 +332,23 @@ export const ledgerApi = onCall({ enforceAppCheck: false, maxInstances: 50 }, as
     return { accepted: true };
   }
 
+  if (action === "user.preferences.set") {
+    await consumeAttempt(`user-preferences:${uid}`, 20, 60_000);
+    const enabled = request.data?.serviceNotificationsEnabled;
+    if (typeof enabled !== "boolean") throw new HttpsError("invalid-argument", "알림 설정 값이 올바르지 않습니다.");
+    const { userSnap } = await callerLedger(uid);
+    await userSnap.ref.update({ serviceNotificationsEnabled: enabled, preferencesUpdatedAt: FieldValue.serverTimestamp() });
+    return { serviceNotificationsEnabled: enabled };
+  }
+
   if (!["ledger.read", "ledger.write", "invite.create", "ledger.disconnect"].includes(action)) throw new HttpsError("invalid-argument", "지원하지 않는 요청입니다.");
   await consumeAttempt(`${action}:${uid}`, action === "invite.create" ? 5 : action === "ledger.write" ? 30 : 60, 60_000);
-  const { ref, snap, ledgerId, members } = await callerLedger(uid);
-  if (action === "ledger.read") return { ledgerId, revision: snap.get("revision") || 1, data: snap.get("data") || emptyLedger(), profile: snap.get("profile") || {} };
+  const { ref, snap, ledgerId, members, userSnap } = await callerLedger(uid);
+  if (action === "ledger.read") return {
+    ledgerId, revision: snap.get("revision") || 1, data: snap.get("data") || emptyLedger(),
+    profile: snap.get("profile") || {}, lastWriterUid: snap.get("lastWriterUid") || null,
+    preferences: { serviceNotificationsEnabled: userSnap.get("serviceNotificationsEnabled") !== false }
+  };
   if (action === "ledger.write") {
     const data = normalizeSnapshot(request.data?.data);
     const profile: Record<string, unknown> = {};

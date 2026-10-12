@@ -309,31 +309,46 @@
 
     <div id="settingsModal" class="fixed inset-0 z-50 hidden bg-slate-900/30 backdrop-blur-md flex items-center justify-center p-4">
         <div class="bg-white/80 rounded-3xl max-w-lg w-full shadow-2xl border border-white flex flex-col max-h-[85vh]">
-            <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center"><h3 class="font-bold text-slate-800 text-sm"><i class="fa-solid fa-gear text-rose-500 mr-2"></i>설정</h3><button onclick="closeModal('settingsModal')" class="text-slate-400"><i class="fa-solid fa-xmark text-lg"></i></button></div>
+            <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center"><h3 class="font-bold text-slate-800 text-sm"><i class="fa-solid fa-gear text-amber-600 mr-2"></i>설정</h3><button onclick="closeModal('settingsModal')" class="text-slate-400"><i class="fa-solid fa-xmark text-lg"></i></button></div>
             <div class="flex border-b border-slate-200 p-1.5 gap-1 bg-slate-100/50 text-xs font-bold">
-                <button id="tabBtnCat" onclick="switchSettingsTab('category')" class="flex-1 py-2 rounded-xl bg-white text-rose-600 shadow-sm">카테고리</button>
+                <button id="tabBtnCat" onclick="switchSettingsTab('category')" class="flex-1 py-2 rounded-xl bg-white text-amber-800 shadow-sm">카테고리</button>
                 <button id="tabBtnPay" onclick="switchSettingsTab('payment')" class="flex-1 py-2 rounded-xl text-slate-500">결제수단</button>
                 <button id="tabBtnAccount" onclick="switchSettingsTab('account')" class="flex-1 py-2 rounded-xl text-slate-500">계정 및 연결</button>
             </div>
             <div class="p-6 overflow-y-auto space-y-4 flex-1 text-xs">
                 <div id="settingsCategorySection" class="space-y-3">
                     <div class="flex justify-between items-center"><label class="font-bold">구분</label><select id="settingCatType" onchange="renderCategorySettingsList()" class="px-3 py-1.5 liquid-pill rounded-xl font-bold"><option value="expense">지출</option><option value="fixed_expense">고정 지출</option><option value="income">수입</option><option value="saving">저축/투자</option></select></div>
-                    <div class="p-3 liquid-pill rounded-2xl flex gap-2"><input type="text" id="newCatName" placeholder="카테고리 이름" class="flex-1 p-2 bg-white rounded-xl border border-slate-200"><input type="color" id="newCatColor" value="#f43f5e" class="w-9 h-9 p-1 bg-white rounded-xl cursor-pointer"><button onclick="addCategoryItem()" class="px-4 py-2 bg-rose-500 text-white rounded-xl font-bold">추가</button></div>
+                    <div class="p-3 liquid-pill rounded-2xl flex items-center gap-2"><input type="text" id="newCatName" placeholder="카테고리 이름" class="min-w-0 flex-1 p-2 bg-white rounded-xl border border-slate-200"><input type="color" id="newCatColor" value="#ffbb0c" class="w-9 h-9 shrink-0 p-1 bg-white rounded-xl cursor-pointer"><button onclick="addCategoryItem()" class="min-w-[56px] shrink-0 whitespace-nowrap px-4 py-2 bg-amber-400 text-amber-950 rounded-xl font-extrabold">추가</button></div>
                     <div id="categorySettingsList" class="space-y-2"></div>
                 </div>
                 <div id="settingsPaymentSection" class="space-y-3 hidden">
-                    <div class="p-3 liquid-pill rounded-2xl flex gap-2"><input type="text" id="newPaymentName" placeholder="결제수단 이름" class="flex-1 p-2 bg-white rounded-xl border border-slate-200"><button onclick="addPaymentMethodItem()" class="px-4 py-2 bg-rose-500 text-white rounded-xl font-bold">추가</button></div>
+                    <div class="p-3 liquid-pill rounded-2xl flex items-center gap-2"><input type="text" id="newPaymentName" placeholder="결제수단 이름" class="min-w-0 flex-1 p-2 bg-white rounded-xl border border-slate-200"><button onclick="addPaymentMethodItem()" class="min-w-[56px] shrink-0 whitespace-nowrap px-4 py-2 bg-amber-400 text-amber-950 rounded-xl font-extrabold">추가</button></div>
                     <div id="paymentSettingsList" class="space-y-2"></div>
                 </div>
                 <div id="settingsAccountSection" class="space-y-3 hidden">
+                    <div class="p-4 bg-amber-50/70 border border-amber-200 rounded-2xl flex items-center justify-between gap-4">
+                        <div><span class="font-bold block text-amber-950">서비스 알림 설정</span><p class="mt-1 text-[11px] leading-5 text-slate-500">앱을 사용하는 동안 파트너가 거래를 등록하면 알려드립니다.</p></div>
+                        <label class="relative inline-flex shrink-0 cursor-pointer items-center" aria-label="서비스 알림 설정"><input id="serviceNotificationsToggle" type="checkbox" class="peer sr-only" onchange="setServiceNotificationsEnabled(this.checked)"><span class="h-6 w-11 rounded-full bg-slate-300 transition peer-checked:bg-amber-500 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-200"></span><span class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition peer-checked:translate-x-5"></span></label>
+                    </div>
                     <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
                         <span class="font-bold block">공유 연결 관리</span>
                         <p class="text-[11px] leading-5 text-slate-500">연결을 해제하면 현재 공유 가계부는 방장에게 남고, 나간 사용자는 새 빈 가계부를 받습니다.</p>
-                        <button onclick="disconnectPartner()" class="w-full py-2 bg-white border border-rose-200 text-rose-700 rounded-xl font-bold">파트너 연결 해제</button>
+                        <button onclick="disconnectPartner()" class="w-full py-2 bg-white border border-amber-200 text-amber-800 rounded-xl font-bold">파트너 연결 해제</button>
                     </div>
+                    <a href="https://sites.google.com/view/doolimoaprivacypolicy/%ED%99%88" target="_blank" rel="noopener noreferrer" class="block rounded-xl border border-slate-200 bg-white px-4 py-3 text-center font-bold text-amber-800">개인정보처리방침 <i class="fa-solid fa-arrow-up-right-from-square ml-1 text-[10px]"></i></a>
+                    <div class="rounded-2xl border border-amber-300 bg-amber-50/70 p-4 space-y-2"><span class="block font-bold text-amber-950">회원 탈퇴</span><p class="text-[11px] leading-5 text-amber-900">탈퇴하면 공유 연결이 해제되고 가계부 데이터가 삭제됩니다. 삭제된 데이터는 복구할 수 없습니다.</p><button type="button" onclick="openAccountDeleteModal()" class="w-full py-2 rounded-xl bg-amber-700 text-white font-extrabold">회원 탈퇴</button></div>
                 </div>
             </div>
             <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end"><button onclick="closeModal('settingsModal')" class="px-5 py-2 bg-slate-800 text-white rounded-xl text-xs font-bold">확인</button></div>
+        </div>
+    </div>
+
+    <div id="accountDeleteModal" class="fixed inset-0 z-[80] hidden bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="accountDeleteTitle">
+        <div class="w-full max-w-sm rounded-3xl border border-rose-100 bg-white p-6 shadow-2xl space-y-4">
+            <div class="flex items-center gap-3"><span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-100 text-amber-800"><i class="fa-solid fa-triangle-exclamation"></i></span><h3 id="accountDeleteTitle" class="text-lg font-black text-slate-800">회원 탈퇴</h3></div>
+            <p class="text-sm leading-6 text-slate-600">정말 탈퇴하시겠습니까? 탈퇴 시 파트너와의 연결이 해제되고 공유 가계부를 포함한 모든 가계부 데이터가 영구적으로 삭제됩니다. 삭제 후에는 복구할 수 없습니다.</p>
+            <p id="accountDeleteError" class="hidden text-xs leading-5 text-rose-600" role="alert"></p>
+            <div class="grid grid-cols-2 gap-2"><button type="button" onclick="closeModal('accountDeleteModal')" class="py-3 rounded-xl bg-slate-100 text-slate-700 font-bold">아니오</button><button id="confirmAccountDeleteButton" type="button" onclick="confirmAccountDeletion()" class="py-3 rounded-xl bg-amber-700 text-white font-extrabold">예, 탈퇴합니다</button></div>
         </div>
     </div>
 
@@ -427,6 +442,7 @@
         window.closeModal = (id) => document.getElementById(id)?.classList.add('hidden');
 
         window.assets = { stocks: [], realEstate: [], vehicles: [], pensions: [], savings: [] };
+        window.serviceNotificationsEnabled = true;
 
         window.CATEGORIES = {
             expense: [
@@ -1089,9 +1105,9 @@
             document.getElementById('settingsCategorySection').classList.toggle('hidden', tab !== 'category');
             document.getElementById('settingsPaymentSection').classList.toggle('hidden', tab !== 'payment');
             document.getElementById('settingsAccountSection').classList.toggle('hidden', tab !== 'account');
-            document.getElementById('tabBtnCat').className = tab === 'category' ? 'flex-1 py-2 rounded-xl bg-white text-rose-600 shadow-sm' : 'flex-1 py-2 rounded-xl text-slate-500';
-            document.getElementById('tabBtnPay').className = tab === 'payment' ? 'flex-1 py-2 rounded-xl bg-white text-rose-600 shadow-sm' : 'flex-1 py-2 rounded-xl text-slate-500';
-            document.getElementById('tabBtnAccount').className = tab === 'account' ? 'flex-1 py-2 rounded-xl bg-white text-rose-600 shadow-sm' : 'flex-1 py-2 rounded-xl text-slate-500';
+            document.getElementById('tabBtnCat').className = tab === 'category' ? 'flex-1 py-2 rounded-xl bg-white text-amber-800 shadow-sm' : 'flex-1 py-2 rounded-xl text-slate-500';
+            document.getElementById('tabBtnPay').className = tab === 'payment' ? 'flex-1 py-2 rounded-xl bg-white text-amber-800 shadow-sm' : 'flex-1 py-2 rounded-xl text-slate-500';
+            document.getElementById('tabBtnAccount').className = tab === 'account' ? 'flex-1 py-2 rounded-xl bg-white text-amber-800 shadow-sm' : 'flex-1 py-2 rounded-xl text-slate-500';
             if (tab === 'category') window.renderCategorySettingsList();
             if (tab === 'payment') window.renderPaymentSettingsList();
         };
@@ -1101,7 +1117,7 @@
             const type = document.getElementById('settingCatType').value || 'expense';
             (window.CATEGORIES[type] || []).forEach((c, idx) => {
                 const div = document.createElement('div'); div.className = 'p-2 bg-white rounded-xl flex justify-between text-xs items-center';
-                div.innerHTML = `<span><i class="fa-solid ${c.icon} mr-2" style="color:${c.color}"></i>${c.name}</span><button onclick="deleteCategoryItem('${type}', ${idx})" class="text-rose-500"><i class="fa-solid fa-trash-can"></i></button>`;
+                div.innerHTML = `<span><i class="fa-solid ${c.icon} mr-2" style="color:${c.color}"></i>${c.name}</span><button onclick="deleteCategoryItem('${type}', ${idx})" class="text-amber-700"><i class="fa-solid fa-trash-can"></i></button>`;
                 list.appendChild(div);
             });
         };
@@ -1126,7 +1142,7 @@
             const list = document.getElementById('paymentSettingsList'); if (!list) return; list.innerHTML = '';
             (window.paymentMethods || []).forEach((p, idx) => {
                 const div = document.createElement('div'); div.className = 'p-2 bg-white rounded-xl flex justify-between text-xs items-center';
-                div.innerHTML = `<span>${p}</span><button onclick="deletePaymentMethodItem(${idx})" class="text-rose-500"><i class="fa-solid fa-trash-can"></i></button>`;
+                div.innerHTML = `<span>${p}</span><button onclick="deletePaymentMethodItem(${idx})" class="text-amber-700"><i class="fa-solid fa-trash-can"></i></button>`;
                 list.appendChild(div);
             });
         };
@@ -1190,6 +1206,49 @@
                 closeModal('settingsModal');
                 window.showToast('파트너 연결을 해제했습니다.');
             } catch (error) { window.showToast(error.message || '연결을 해제하지 못했습니다.'); }
+        };
+
+        window.setServiceNotificationsEnabled = async (enabled) => {
+            const toggle = document.getElementById('serviceNotificationsToggle');
+            const previous = window.serviceNotificationsEnabled;
+            window.serviceNotificationsEnabled = enabled;
+            if (toggle) toggle.disabled = true;
+            try {
+                const result = await window.callLedgerApi('user.preferences.set', { serviceNotificationsEnabled: enabled });
+                window.serviceNotificationsEnabled = result.serviceNotificationsEnabled;
+                window.showToast(enabled ? '서비스 알림을 켰습니다.' : '서비스 알림을 껐습니다.');
+            } catch (error) {
+                window.serviceNotificationsEnabled = previous;
+                if (toggle) toggle.checked = previous;
+                window.showToast(error.message || '알림 설정을 저장하지 못했습니다.');
+            } finally { if (toggle) toggle.disabled = false; }
+        };
+
+        window.openAccountDeleteModal = () => {
+            const error = document.getElementById('accountDeleteError');
+            error.textContent = ''; error.classList.add('hidden');
+            openModal('accountDeleteModal');
+        };
+
+        window.confirmAccountDeletion = async () => {
+            const button = document.getElementById('confirmAccountDeleteButton');
+            const error = document.getElementById('accountDeleteError');
+            button.disabled = true; button.textContent = '탈퇴 처리 중...';
+            try {
+                await window.callLedgerApi('account.delete');
+                localStorage.removeItem('doolimoa_setup_done');
+                localStorage.removeItem('shinhon_room_code');
+                window.pendingInviteToken = null; window.activeRoomCode = '';
+                await window.signOutFirebase();
+                closeModal('accountDeleteModal'); closeModal('settingsModal');
+                document.getElementById('onboardingScreen').classList.remove('hidden');
+                document.getElementById('brandingStep').hidden = false;
+                document.getElementById('roomSetupStep').hidden = true;
+                window.showToast('회원 탈퇴가 완료되었습니다.');
+            } catch (failure) {
+                error.textContent = failure.message || '탈퇴 처리에 실패했습니다. 다시 시도해 주세요.';
+                error.classList.remove('hidden');
+            } finally { button.disabled = false; button.textContent = '예, 탈퇴합니다'; }
         };
 
         window.openBudgetModal = () => {
@@ -1346,7 +1405,7 @@
     <!-- Authenticated callable API only. The client does not import Firestore. -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signInWithCustomToken, setPersistence, browserLocalPersistence, inMemoryPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, onAuthStateChanged, signInWithCustomToken, signOut, setPersistence, browserLocalPersistence, inMemoryPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-functions.js";
 
         const firebaseConfig = {
@@ -1363,6 +1422,7 @@
         if (window.Kakao && !window.Kakao.isInitialized()) window.Kakao.init(KAKAO_JS_KEY);
         localStorage.removeItem('shinhon_room_code');
         const auth = getAuth(app);
+        window.signOutFirebase = () => signOut(auth);
         // Make the Kakao OAuth return survive page reloads. Some WebViews (file://)
         // do not support browser storage, so retain an in-memory fallback there.
         const authPersistenceReady = setPersistence(auth, browserLocalPersistence).catch(async (error) => {
@@ -1403,6 +1463,9 @@
             const data = result.data || {};
             window.activeRoomCode = result.ledgerId;
             window.lastLedgerRevision = result.revision || 1;
+            window.serviceNotificationsEnabled = result.preferences?.serviceNotificationsEnabled !== false;
+            const notificationToggle = document.getElementById('serviceNotificationsToggle');
+            if (notificationToggle) notificationToggle.checked = window.serviceNotificationsEnabled;
             window.transactions = Array.isArray(data.transactions) ? data.transactions : [];
             window.categoryBudgets = data.categoryBudgets || {};
             window.savingsGoals = Array.isArray(data.savingsGoals) ? data.savingsGoals : (data.savingsGoal ? [{ id: 'legacy-goal', ...data.savingsGoal }] : []);
@@ -1518,7 +1581,15 @@
             if (!auth.currentUser || !window.activeRoomCode || window.isSavingSecureLedger) return;
             try {
                 const current = await window.callLedgerApi('ledger.read');
-                if (current.revision !== window.lastLedgerRevision) await window.loadSecureLedger();
+                if (current.revision !== window.lastLedgerRevision) {
+                    const previousIds = new Set((window.transactions || []).map(transaction => String(transaction.id)));
+                    const addedTransactions = (current.data?.transactions || []).filter(transaction => !previousIds.has(String(transaction.id)));
+                    if (window.serviceNotificationsEnabled && current.lastWriterUid && current.lastWriterUid !== auth.currentUser.uid && addedTransactions.length > 0) {
+                        const title = addedTransactions.length === 1 ? addedTransactions[0].title : `${addedTransactions.length}건의 거래`;
+                        window.showToast(`파트너가 새 내역을 등록했습니다: ${title}`);
+                    }
+                    await window.loadSecureLedger();
+                }
             } catch (error) { console.warn('Secure refresh failed', error); }
         }, 12000);
     </script>
