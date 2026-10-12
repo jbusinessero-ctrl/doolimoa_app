@@ -41,14 +41,18 @@
         .transaction-mobile-card { min-width: 0; }
         .calendar-day-cell { min-width: 0; overflow: hidden; border-color: #f0e4cb; background: #fffdfa; }
         .calendar-day-cell:hover { background: #fff8e8; }
-        .calendar-day-symbols { min-height: 20px; display: flex; justify-content: flex-end; align-items: center; gap: 5px; }
+        .calendar-day-symbols { min-height: 20px; margin-top: auto; display: flex; justify-content: flex-start; align-items: center; gap: 5px; }
         .calendar-marker { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; border-radius: 999px; font-size: 12px; line-height: 1; font-weight: 900; }
-        .calendar-marker-income { color: #9b6900; background: #fff0c2; }
-        .calendar-marker-expense { color: #a66300; background: #f9e7c0; }
-        .calendar-marker-no-spend { color: #d18a00; background: #fff1c9; font-size: 11px; }
+        .calendar-marker-income { color: #087f68; background: #dff5ec; }
+        .calendar-marker-expense { color: #9a5a00; background: #ffedbd; }
+        .calendar-marker-no-spend { color: #ffbb0c; background: #fff4d1; font-size: 16px; width: 24px; height: 24px; text-shadow: 0 0 1px #805500; box-shadow: 0 1px 4px rgba(128,85,0,.16); }
+        .budget-usage-badge { display: inline-flex; align-items: center; border-radius: 999px; padding: 4px 10px; font-size: 10px; line-height: 1.2; font-weight: 800; color: #805500; background: #fff1c2; }
+        .budget-usage-badge.is-over { color: #503600; background: #ffbb0c; }
+        .budget-progress-track { width: 100%; height: 6px; overflow: hidden; border-radius: 999px; background: #fff1c2; }
+        .budget-progress-fill { height: 100%; border-radius: inherit; background: #ffbb0c; transition: width .3s ease; }
         .calendar-day-label.is-today { color: #9b6900; background: #ffe9a8; border-radius: 999px; padding: 2px 6px; }
         .calendar-month-summary { background: #fff2c9; color: #805500; border-color: #f2dda0; }
-        .calendar-month-summary .fa-heart { color: #d18a00 !important; }
+        .calendar-month-summary .fa-heart { color: #ffbb0c !important; }
         .calendar-weekday-sun, .calendar-weekday-sat { color: #ad790d; }
         #budgetShowMore { color: #9b6900; }
         .bottom-nav > button { width: 100%; min-width: 0; justify-self: stretch; }
@@ -89,8 +93,6 @@
             .budget-card .budget-values { font-size: 11px; gap: 6px; }
             .transaction-table-wrap { display: none; }
             .transaction-card-list { display: grid; gap: 9px; padding: 10px; }
-            .transaction-summary { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px 12px; }
-            .transaction-summary > span:first-child { grid-column: 1 / -1; }
             .transaction-filter-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
             .transaction-filter-grid select, .transaction-filter-grid input { min-width: 0; width: 100%; }
             #calendarView { padding: 12px; gap: 12px; }
@@ -203,7 +205,7 @@
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="liquid-glass p-5"><h3 class="text-sm font-bold mb-3"><i class="fa-solid fa-chart-pie text-rose-500 mr-2"></i>카테고리별 지출 비중</h3><div class="h-56"><canvas id="categoryChart"></canvas></div></div>
-                <div class="liquid-glass p-5"><h3 class="text-sm font-bold mb-3"><i class="fa-solid fa-chart-simple text-blue-500 mr-2"></i>지난달 vs 이번달 카테고리 비교</h3><div class="h-56"><canvas id="momChart"></canvas></div></div>
+                <div class="liquid-glass p-5"><h3 class="text-sm font-bold mb-3"><i class="fa-solid fa-chart-simple text-amber-600 mr-2"></i>지난달 vs 이번달 카테고리 비교</h3><div class="h-56"><canvas id="momChart"></canvas></div></div>
             </div>
 
             <!-- Transactions Table -->
@@ -219,7 +221,6 @@
                 <div class="transaction-table-wrap overflow-x-auto"><table class="w-full text-left text-xs"><thead class="bg-white/40 text-slate-500 font-bold border-b border-white/60"><tr><th class="p-3">날짜</th><th class="p-3">구분</th><th class="p-3">카테고리</th><th class="p-3">내역명</th><th class="p-3">결제수단</th><th class="p-3 text-right">금액</th><th class="p-3 text-center">관리</th></tr></thead><tbody id="transactionTableBody" class="divide-y divide-white/40"></tbody></table></div>
                 <div id="transactionCardList" class="transaction-card-list"></div>
                 <button id="transactionShowMore" onclick="showMoreTransactions()" class="hidden mx-auto my-3 block w-fit px-5 py-2 rounded-xl liquid-btn text-xs font-bold text-slate-600">내역 더 보기</button>
-                <div class="transaction-summary p-4 bg-white/50 text-xs font-bold flex flex-wrap justify-between gap-2"><span>조회된 항목 합계</span><div>수입: <b id="filteredIncomeSum" class="text-emerald-600">0원</b></div><div>변동 지출: <b id="filteredExpenseSum" class="text-rose-600">0원</b></div><div>고정 지출: <b id="filteredFixedExpenseSum" class="text-amber-600">0원</b></div><div>저축: <b id="filteredSavingSum" class="text-blue-600">0원</b></div></div>
             </div>
 
             <!-- Asset Section -->
@@ -510,12 +511,11 @@
                 cell.onclick = () => window.openDayDetailModal(dateStr, data.items);
                 const markers = [
                     data.income > 0 ? '<span class="calendar-marker calendar-marker-income" role="img" aria-label="수입 있음" title="수입 있음">+</span>' : '',
-                    data.expense > 0 ? '<span class="calendar-marker calendar-marker-expense" role="img" aria-label="지출 있음" title="지출 있음">−</span>' : '',
-                    isNoSpend ? '<span class="calendar-marker calendar-marker-no-spend" role="img" aria-label="무지출" title="무지출">♥</span>' : ''
+                    data.expense > 0 ? '<span class="calendar-marker calendar-marker-expense" role="img" aria-label="지출 있음" title="지출 있음">−</span>' : ''
                 ].filter(Boolean).join('');
                 cell.innerHTML = `
-                    <div class="flex justify-between items-center gap-0.5"><span class="calendar-day-label text-xs font-black text-slate-800 ${isToday ? 'is-today' : ''}">${d}</span></div>
-                    <div class="calendar-day-symbols" aria-label="${[data.income > 0 ? '수입 있음' : '', data.expense > 0 ? '지출 있음' : '', isNoSpend ? '무지출' : ''].filter(Boolean).join(', ')}">${markers}</div>
+                    <div class="flex w-full justify-between items-start gap-1"><span class="calendar-day-label text-xs font-black text-slate-800 ${isToday ? 'is-today' : ''}">${d}</span>${isNoSpend ? '<span class="calendar-marker calendar-marker-no-spend" role="img" aria-label="무지출" title="무지출">♥</span>' : ''}</div>
+                    <div class="calendar-day-symbols" aria-label="${[data.income > 0 ? '수입 있음' : '', data.expense > 0 ? '지출 있음' : ''].filter(Boolean).join(', ')}">${markers}</div>
                 `;
                 grid.appendChild(cell);
             }
@@ -643,9 +643,9 @@
                 const card = document.createElement('div');
                 card.className = "budget-card p-3.5 liquid-pill rounded-2xl space-y-2 border border-white/80";
                 card.innerHTML = `
-                    <div class="flex justify-between items-center gap-2"><span class="budget-category-name min-w-0 font-bold text-sm truncate"><i class="fa-solid ${cat.icon} mr-1.5" style="color:${cat.color}"></i>${cat.name}</span><span class="text-[10px] font-bold px-2.5 py-1 rounded-full shrink-0 ${p > 100 ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-800'}">${p}%</span></div>
+                    <div class="flex justify-between items-center gap-2"><span class="budget-category-name min-w-0 font-bold text-sm truncate"><i class="fa-solid ${cat.icon} mr-1.5" style="color:${cat.color}"></i>${cat.name}</span><span class="budget-usage-badge ${p > 100 ? 'is-over' : ''}">${p}%</span></div>
                     <div class="budget-values flex justify-between items-center text-xs"><span class="text-slate-500">이번 달 지출 <b class="text-slate-800">${formatNumberOnly(spent)}원</b></span><span class="text-slate-500">목표 ${formatNumberOnly(budget)}원</span></div>
-                    <div class="w-full bg-slate-200/80 h-1.5 rounded-full overflow-hidden"><div class="h-full rounded-full transition-all duration-300 ${p > 100 ? 'bg-rose-500' : 'bg-emerald-500'}" style="width:${Math.min(p, 100)}%"></div></div>
+                    <div class="budget-progress-track"><div class="budget-progress-fill" style="width:${Math.min(p, 100)}%"></div></div>
                 `;
                 grid.appendChild(card);
             });
@@ -669,7 +669,7 @@
             if (ctx2) {
                 if (momChartInstance) momChartInstance.destroy();
                 momChartInstance = new Chart(ctx2, {
-                    type: 'bar', data: { labels: allCats.map(c => c.name.split('/')[0]), datasets: [{ label: '지난달', data: prevTotals, backgroundColor: '#cbd5e1' }, { label: '이번달', data: currTotals, backgroundColor: '#f43f5e' }] },
+                    type: 'bar', data: { labels: allCats.map(c => c.name.split('/')[0]), datasets: [{ label: '지난달', data: prevTotals, backgroundColor: '#e5e7eb', borderColor: '#c9cdd3', borderWidth: 1 }, { label: '이번달', data: currTotals, backgroundColor: '#ffbb0c', borderColor: '#e2a000', hoverBackgroundColor: '#f0ad00', borderWidth: 1 }] },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { boxWidth: 8, font: { size: 9 } } } } }
                 });
             }
@@ -743,15 +743,6 @@
                 });
             }
 
-            const incSum = filtered.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-            const expSum = filtered.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-            const fixedSum = filtered.filter(t => t.type === 'fixed_expense').reduce((s, t) => s + t.amount, 0);
-            const savSum = filtered.filter(t => t.type === 'saving').reduce((s, t) => s + t.amount, 0);
-
-            document.getElementById('filteredIncomeSum').textContent = formatKRW(incSum);
-            document.getElementById('filteredExpenseSum').textContent = formatKRW(expSum);
-            document.getElementById('filteredFixedExpenseSum').textContent = formatKRW(fixedSum);
-            document.getElementById('filteredSavingSum').textContent = formatKRW(savSum);
         };
 
         window.showMoreTransactions = () => {
