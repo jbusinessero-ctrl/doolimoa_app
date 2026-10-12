@@ -19,6 +19,7 @@ import android.widget.TextView
 import com.android.installreferrer.api.InstallReferrerClient
 import com.android.installreferrer.api.InstallReferrerStateListener
 import com.kakao.sdk.common.KakaoSdk
+import com.kakao.sdk.common.util.Utility
 import com.kakao.sdk.template.model.Link
 import com.kakao.sdk.template.model.TextTemplate
 import com.kakao.sdk.user.UserApiClient
@@ -196,6 +197,8 @@ class MainActivity : Activity() {
     private fun reportNativeLoginFailure(stage: String, error: Throwable, fallbackStage: String? = null, fallbackError: Throwable? = null) {
         Log.e("DoolimoaAuth", "$stage failed (${error.javaClass.simpleName}): ${error.message}", error)
         if (fallbackError != null) Log.e("DoolimoaAuth", "$fallbackStage failed (${fallbackError.javaClass.simpleName}): ${fallbackError.message}", fallbackError)
+        val currentKeyHash = runCatching { Utility.getKeyHash(this@MainActivity) }.getOrNull()
+        currentKeyHash?.let { Log.e("DoolimoaAuth", "Current Android key hash: $it") }
         val detail = buildString {
             append("$stage 실패: ${error.javaClass.simpleName}")
             error.message?.takeIf { it.isNotBlank() }?.let { append(" — ").append(it) }
@@ -203,7 +206,8 @@ class MainActivity : Activity() {
                 append("; $fallbackStage 실패: ${fallbackError.javaClass.simpleName}")
                 fallbackError.message?.takeIf { it.isNotBlank() }?.let { append(" — ").append(it) }
             }
-            append(". 카카오 디벨로퍼스의 Android 패키지명과 앱 키, 현재 앱 서명 키 해시를 확인해 주세요.")
+            append(". 카카오 디벨로퍼스의 Android 패키지명과 앱 키, 앱 서명 키 해시를 확인해 주세요.")
+            currentKeyHash?.let { append(" 현재 설치 앱 키 해시: ").append(it) }
         }
         notifyJs("window.onNativeAuthError(${JSONObject.quote(detail)})")
     }
