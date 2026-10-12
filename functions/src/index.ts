@@ -112,7 +112,7 @@ export const exchangeKakao = onRequest({ cors: ["https://jbusinessero-ctrl.githu
 });
 
 function emptyLedger() {
-  return { transactions: [], categoryBudgets: {}, overallBudget: 0, categories: null, paymentMethods: null, assets: { stocks: [], realEstate: [], vehicles: [], pensions: [], savings: [] } };
+  return { transactions: [], categoryBudgets: {}, overallBudget: 0, categories: null, paymentMethods: null, assets: { stocks: [], realEstate: [], vehicles: [], pensions: [], savings: [] }, savingsGoal: null };
 }
 
 async function callerLedger(uid: string) {
@@ -131,7 +131,7 @@ async function callerLedger(uid: string) {
 function normalizeSnapshot(input: unknown) {
   if (!input || typeof input !== "object") throw new HttpsError("invalid-argument", "가계부 데이터 형식이 올바르지 않습니다.");
   const body = input as Record<string, unknown>;
-  const fields = ["transactions", "categoryBudgets", "overallBudget", "categories", "paymentMethods", "ledgerName", "assets"];
+  const fields = ["transactions", "categoryBudgets", "overallBudget", "categories", "paymentMethods", "ledgerName", "assets", "savingsGoal"];
   const data: Record<string, unknown> = {};
   for (const field of fields) if (field in body) data[field] = body[field];
   if (data.transactions !== undefined && (!Array.isArray(data.transactions) || data.transactions.length > 5000)) throw new HttpsError("invalid-argument", "거래 내역이 너무 많거나 올바르지 않습니다.");
@@ -139,8 +139,30 @@ function normalizeSnapshot(input: unknown) {
   if (data.categoryBudgets !== undefined && (!data.categoryBudgets || typeof data.categoryBudgets !== "object")) throw new HttpsError("invalid-argument", "예산 데이터 형식이 올바르지 않습니다.");
   if (data.overallBudget !== undefined && (typeof data.overallBudget !== "number" || !Number.isFinite(data.overallBudget) || data.overallBudget < 0)) throw new HttpsError("invalid-argument", "예산 금액이 올바르지 않습니다.");
   if (data.ledgerName !== undefined && (typeof data.ledgerName !== "string" || !data.ledgerName.trim() || data.ledgerName.length > 60)) throw new HttpsError("invalid-argument", "가계부 이름은 1~60자로 입력해 주세요.");
+  if (data.savingsGoal !== undefined) data.savingsGoal = normalizeSavingsGoal(data.savingsGoal);
   if (Buffer.byteLength(JSON.stringify(data), "utf8") > MAX_LEDGER_BYTES) throw new HttpsError("resource-exhausted", "저장 가능한 가계부 데이터 크기를 초과했습니다.");
   return data;
+}
+
+function normalizeSavingsGoal(input: unknown) {
+  if (input === null) return null;
+  if (!input || typeof input !== "object" || Array.isArray(input)) throw new HttpsError("invalid-argument", "저축 목표 데이터 형식이 올바르지 않습니다.");
+  const goal = input as Record<string, unknown>;
+  const title = typeof goal.title === "string" ? goal.title.trim() : "";
+  const targetAmount = goal.targetAmount;
+  const currentAmount = goal.currentAmount;
+  const targetDate = goal.targetDate;
+  if (!title || title.length > 60) throw new HttpsError("invalid-argument", "목표 제목은 1~60자로 입력해 주세요.");
+  if (typeof targetAmount !== "number" || !Number.isSafeInteger(targetAmount) || targetAmount <= 0
+    || typeof currentAmount !== "number" || !Number.isSafeInteger(currentAmount) || currentAmount < 0) {
+    throw new HttpsError("invalid-argument", "저축 목표 금액을 확인해 주세요.");
+  }
+  const parsedDate = typeof targetDate === "string" ? new Date(`${targetDate}T00:00:00.000Z`) : null;
+  if (typeof targetDate !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(targetDate)
+    || !parsedDate || Number.isNaN(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== targetDate) {
+    throw new HttpsError("invalid-argument", "목표 날짜를 올바르게 입력해 주세요.");
+  }
+  return { title, targetAmount, currentAmount, targetDate };
 }
 
 // Turn on enforceAppCheck after the Android Play Integrity provider is configured.
@@ -314,6 +336,7 @@ function isEmptyLedger(data: unknown): boolean {
     && Number(value.overallBudget || 0) === 0
     && Object.keys((value.categoryBudgets as object) || {}).length === 0
     && (!value.assets || Object.values(value.assets as Record<string, unknown>).every((items) => !Array.isArray(items) || items.length === 0))
+    && value.savingsGoal == null
     && (value.categories == null) && (value.paymentMethods == null);
 }
 
