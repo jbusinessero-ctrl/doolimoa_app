@@ -1471,6 +1471,43 @@
             } catch (error) { window.showToast('링크 복사에 실패했습니다. 브라우저 권한을 확인해 주세요.'); }
         };
         window.showToast = (msg) => { const t = document.getElementById('toast'); document.getElementById('toastMessage').textContent = msg; t.classList.remove('hidden'); setTimeout(() => t.classList.add('hidden'), 2500); };
+
+        // Keep the login click handler independent from Firebase's deferred module imports.
+        // This lets the user start Kakao OAuth even while Firebase SDK initialization is pending.
+        window.startKakaoLogin = () => {
+            const button = document.getElementById('kakaoLoginButton');
+            const help = document.getElementById('loginHelpText');
+            const restoreButton = () => {
+                if (button) { button.disabled = false; button.textContent = '카카오로 시작하기'; }
+            };
+            try {
+                if (window.NativeAuth?.loginWithKakao) {
+                    if (button) { button.disabled = true; button.textContent = '카카오 로그인 중...'; }
+                    if (help) help.textContent = '로그인 확인이 끝나면 가계부로 이동합니다.';
+                    window.NativeAuth.loginWithKakao();
+                    return;
+                }
+                const kakao = window.Kakao;
+                const jsKey = window.DOOLIMOA_PUBLIC_CONFIG?.kakaoJavaScriptKey;
+                if (!kakao || !jsKey) {
+                    restoreButton();
+                    if (help) help.textContent = '카카오 로그인 모듈을 불러오지 못했습니다. 페이지를 새로고침한 뒤 다시 시도해 주세요.';
+                    return window.showToast('카카오 로그인 설정을 불러오지 못했습니다.');
+                }
+                if (!kakao.isInitialized()) kakao.init(jsKey);
+                if (!kakao.Auth?.authorize) throw new Error('Kakao OAuth API is unavailable');
+                const state = crypto.randomUUID();
+                localStorage.setItem('doolimoa_kakao_oauth_state', state);
+                if (button) { button.disabled = true; button.textContent = '카카오 로그인으로 이동 중...'; }
+                if (help) help.textContent = '카카오 로그인 화면으로 이동합니다.';
+                kakao.Auth.authorize({ redirectUri: 'https://jbusinessero-ctrl.github.io/doolimoa_app/', state });
+            } catch (_) {
+                try { localStorage.removeItem('doolimoa_kakao_oauth_state'); } catch (_) {}
+                restoreButton();
+                if (help) help.textContent = '카카오 로그인 화면을 열지 못했습니다. 브라우저 설정을 확인하고 다시 시도해 주세요.';
+                window.showToast('카카오 로그인 화면을 열지 못했습니다.');
+            }
+        };
         window.exportToCSV = () => { window.showToast('CSV 내보내기가 완료되었습니다.'); };
     </script>
 
@@ -1560,20 +1597,6 @@
                 window.showToast(error.message);
                 return false;
             } finally { window.isSavingSecureLedger = false; }
-        };
-        window.startKakaoLogin = () => {
-            if (window.NativeAuth?.loginWithKakao) {
-                const button = document.getElementById('kakaoLoginButton');
-                const help = document.getElementById('loginHelpText');
-                if (button) { button.disabled = true; button.textContent = '카카오 로그인 중...'; }
-                if (help) help.textContent = '로그인 확인이 끝나면 가계부로 이동합니다.';
-                window.NativeAuth.loginWithKakao();
-                return;
-            }
-            if (!window.Kakao?.Auth) return window.showToast('카카오 로그인 모듈을 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.');
-            const state = crypto.randomUUID();
-            localStorage.setItem('doolimoa_kakao_oauth_state', state);
-            window.Kakao.Auth.authorize({ redirectUri: 'https://jbusinessero-ctrl.github.io/doolimoa_app/', state });
         };
         window.onNativeFirebaseCustomToken = async (customToken) => {
             try { await authPersistenceReady; await signInWithCustomToken(auth, customToken); }
