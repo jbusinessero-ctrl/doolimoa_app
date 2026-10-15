@@ -4,6 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>둘이모아 - 함께 쓰는 가계부</title>
+    <meta name="theme-color" content="#ffbb0c">
+    <meta property="og:title" content="둘이모아 가계부">
+    <meta property="og:description" content="둘이서 함께 모으는 우리 가계부">
+    <meta property="og:image" content="https://jbusinessero-ctrl.github.io/doolimoa_app/doolimoa_app_icon_512x512.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="doolimoa_app_icon_192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="doolimoa_app_icon_512x512.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="doolimoa_app_icon_192x192.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="doolimoa_app_icon_512x512.png">
+    <script src="./app-config.js"></script>
 
     <!-- Microsoft PWABuilder / PWA 앱 설정 연결 -->
     <link rel="manifest" href="manifest.json">
@@ -420,8 +429,8 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('SW Registered:', reg))
-                    .catch(err => console.warn('SW Register failed:', err));
+                    .then(() => {})
+                    .catch(() => {});
             });
         }
     </script>
@@ -574,7 +583,8 @@
                 items.forEach(t => {
                     const div = document.createElement('div');
                     div.className = "p-2.5 liquid-pill rounded-xl flex justify-between text-xs items-center";
-                    div.innerHTML = `<div><div class="font-bold">${t.title}</div><div class="text-[10px] text-slate-400">${t.category}</div></div><div class="text-right"><div class="font-black">${formatNumberOnly(t.amount)}원</div><div class="space-x-2"><button onclick="editTransaction(${t.id}); closeModal('dayDetailModal');" class="text-[10px] text-blue-500 underline">수정</button><button onclick="deleteTransaction(${t.id}); closeModal('dayDetailModal');" class="text-[10px] text-rose-500 underline">삭제</button></div></div>`;
+                    const safeTransactionId = Number.isSafeInteger(t.id) ? t.id : -1;
+                    div.innerHTML = `<div><div class="font-bold">${escapeHtml(t.title || '')}</div><div class="text-[10px] text-slate-400">${escapeHtml(t.category || '')}</div></div><div class="text-right"><div class="font-black">${formatNumberOnly(t.amount)}원</div><div class="space-x-2"><button onclick="editTransaction(${safeTransactionId}); closeModal('dayDetailModal');" class="text-[10px] text-blue-500 underline">수정</button><button onclick="deleteTransaction(${safeTransactionId}); closeModal('dayDetailModal');" class="text-[10px] text-rose-500 underline">삭제</button></div></div>`;
                     content.appendChild(div);
                 });
             }
@@ -665,6 +675,10 @@
             return String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
         }
 
+        // Ledger content is user-controlled shared data: constrain style tokens as well as escaping text/attributes.
+        function safeColor(value) { return /^#[0-9a-f]{6}$/i.test(String(value || '')) ? value : '#d18a00'; }
+        function safeIcon(value) { return /^fa-[a-z0-9-]{1,48}$/i.test(String(value || '')) ? value : 'fa-tag'; }
+
         window.renderSavingsGoal = () => {
             const content = document.getElementById('savingsGoalContent');
             if (!content) return;
@@ -683,8 +697,16 @@
                 const dayDiff = Math.round((Date.UTC(targetYear, targetMonth - 1, targetDate) - Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())) / 86400000);
                 const dday = dayDiff > 0 ? `D-${dayDiff}` : dayDiff === 0 ? 'D-Day' : `D+${Math.abs(dayDiff)}`;
                 const complete = current >= target;
-                return `<article class="rounded-2xl border border-white bg-white/75 p-4 sm:p-5"><div class="flex items-start justify-between gap-3"><div class="min-w-0"><h3 class="truncate text-base font-extrabold text-slate-800">${escapeHtml(goal.title)}</h3><p class="mt-1 text-xs text-slate-500">목표일 ${escapeHtml(goal.targetDate)}</p></div><div class="flex shrink-0 items-center gap-2"><span class="rounded-full ${complete ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'} px-3 py-1.5 text-xs font-extrabold">${complete ? '달성 완료' : dday}</span><button type="button" onclick="editSavingsGoal('${escapeHtml(goal.id)}')" aria-label="${escapeHtml(goal.title)} 목표 수정" class="h-8 w-8 rounded-lg bg-amber-50 text-amber-800"><i class="fa-solid fa-pen"></i></button><button type="button" onclick="deleteSavingsGoal('${escapeHtml(goal.id)}')" aria-label="${escapeHtml(goal.title)} 목표 삭제" class="h-8 w-8 rounded-lg bg-rose-50 text-rose-600"><i class="fa-solid fa-trash"></i></button></div></div><div class="mt-4 flex items-end justify-between gap-2"><strong class="text-lg font-black text-slate-800">${formatNumberOnly(current)}<span class="ml-1 text-xs font-bold text-slate-500">원 모음</span></strong><span class="text-sm font-extrabold text-amber-700">${percent}%</span></div><div class="savings-goal-track mt-2"><div class="savings-goal-fill" role="progressbar" aria-label="${escapeHtml(goal.title)} 달성률" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${width}" style="width:${width}%"></div></div><div class="mt-2 flex justify-between text-xs text-slate-500"><span>목표 ${formatNumberOnly(target)}원</span><span>${complete ? '목표를 달성했어요!' : `남은 금액 ${formatNumberOnly(Math.max(0, target-current))}원`}</span></div></article>`;
+                return `<article class="rounded-2xl border border-white bg-white/75 p-4 sm:p-5"><div class="flex items-start justify-between gap-3"><div class="min-w-0"><h3 class="truncate text-base font-extrabold text-slate-800">${escapeHtml(goal.title)}</h3><p class="mt-1 text-xs text-slate-500">목표일 ${escapeHtml(goal.targetDate)}</p></div><div class="flex shrink-0 items-center gap-2"><span class="rounded-full ${complete ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'} px-3 py-1.5 text-xs font-extrabold">${complete ? '달성 완료' : dday}</span><button type="button" data-goal-action="edit" data-goal-id="${escapeHtml(goal.id)}" aria-label="${escapeHtml(goal.title)} 목표 수정" class="h-8 w-8 rounded-lg bg-amber-50 text-amber-800"><i class="fa-solid fa-pen"></i></button><button type="button" data-goal-action="delete" data-goal-id="${escapeHtml(goal.id)}" aria-label="${escapeHtml(goal.title)} 목표 삭제" class="h-8 w-8 rounded-lg bg-rose-50 text-rose-600"><i class="fa-solid fa-trash"></i></button></div></div><div class="mt-4 flex items-end justify-between gap-2"><strong class="text-lg font-black text-slate-800">${formatNumberOnly(current)}<span class="ml-1 text-xs font-bold text-slate-500">원 모음</span></strong><span class="text-sm font-extrabold text-amber-700">${percent}%</span></div><div class="savings-goal-track mt-2"><div class="savings-goal-fill" role="progressbar" aria-label="${escapeHtml(goal.title)} 달성률" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${width}" style="width:${width}%"></div></div><div class="mt-2 flex justify-between text-xs text-slate-500"><span>목표 ${formatNumberOnly(target)}원</span><span>${complete ? '목표를 달성했어요!' : `남은 금액 ${formatNumberOnly(Math.max(0, target-current))}원`}</span></div></article>`;
             }).join('');
+            // Keep untrusted goal IDs out of inline JavaScript attributes.
+            content.querySelectorAll('[data-goal-action]').forEach(button => {
+                button.addEventListener('click', () => {
+                    const id = button.dataset.goalId || '';
+                    if (button.dataset.goalAction === 'edit') window.editSavingsGoal(id);
+                    else if (button.dataset.goalAction === 'delete') window.deleteSavingsGoal(id);
+                });
+            });
         };
 
         window.openSavingsGoalModal = (goal = null) => {
@@ -781,7 +803,7 @@
                 const card = document.createElement('div');
                 card.className = "budget-card p-3.5 liquid-pill rounded-2xl space-y-2 border border-white/80";
                 card.innerHTML = `
-                    <div class="flex justify-between items-center gap-2"><span class="budget-category-name min-w-0 font-bold text-sm truncate"><i class="fa-solid ${cat.icon} mr-1.5" style="color:${cat.color}"></i>${cat.name}</span><span class="budget-usage-badge ${p > 100 ? 'is-over' : ''}">${p}%</span></div>
+                    <div class="flex justify-between items-center gap-2"><span class="budget-category-name min-w-0 font-bold text-sm truncate"><i class="fa-solid ${safeIcon(cat.icon)} mr-1.5" style="color:${safeColor(cat.color)}"></i>${escapeHtml(cat.name)}</span><span class="budget-usage-badge ${p > 100 ? 'is-over' : ''}">${p}%</span></div>
                     <div class="budget-values flex justify-between items-center text-xs"><span class="text-slate-500">이번 달 지출 <b class="text-slate-800">${formatNumberOnly(spent)}원</b></span><span class="text-slate-500">목표 ${formatNumberOnly(budget)}원</span></div>
                     <div class="budget-progress-track"><div class="budget-progress-fill ${p > 100 ? 'is-over' : ''}" style="width:${Math.min(p, 100)}%"></div></div>
                 `;
@@ -845,21 +867,22 @@
             const emptyMessage = '등록된 거래 내역이 없습니다. [내역 등록] 버튼으로 추가해 주세요.';
 
             if (filtered.length === 0) {
-                body.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-400 font-medium">${emptyMessage}</td></tr>`;
-                if (cards) cards.innerHTML = `<div class="p-5 text-center text-xs text-slate-400 font-medium">${emptyMessage}</div>`;
+                body.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-400 font-medium">${escapeHtml(emptyMessage)}</td></tr>`;
+                if (cards) cards.innerHTML = `<div class="p-5 text-center text-xs text-slate-400 font-medium">${escapeHtml(emptyMessage)}</div>`;
             } else {
                 visibleTransactions.forEach(t => {
-                    const typeLabel = typeLabels[t.type] || t.type || '기타';
+                    const typeLabel = escapeHtml(typeLabels[t.type] || t.type || '기타');
+                    const transactionId = Number.isSafeInteger(t.id) ? t.id : -1;
                     const recurring = t.isRecurring ? ' <span class="text-[9px] bg-amber-100 text-amber-800 px-1 rounded">반복</span>' : '';
                     const tr = document.createElement('tr');
                     tr.className = 'hover:bg-white/60 transition-colors border-b border-white/40';
                     tr.innerHTML = `
-                        <td class="p-3 font-semibold whitespace-nowrap">${t.date}</td><td class="p-3 whitespace-nowrap">${typeLabel}</td><td class="p-3 font-bold">${t.category}</td>
-                        <td class="p-3 font-bold">${t.title}${recurring}</td>
-                        <td class="p-3 text-slate-500">${t.paymentMethod || '-'}</td><td class="p-3 text-right font-black">${formatNumberOnly(t.amount)}원</td>
+                        <td class="p-3 font-semibold whitespace-nowrap">${escapeHtml(t.date || '')}</td><td class="p-3 whitespace-nowrap">${typeLabel}</td><td class="p-3 font-bold">${escapeHtml(t.category || '')}</td>
+                        <td class="p-3 font-bold">${escapeHtml(t.title || '')}${recurring}</td>
+                        <td class="p-3 text-slate-500">${escapeHtml(t.paymentMethod || '-')}</td><td class="p-3 text-right font-black">${formatNumberOnly(t.amount)}원</td>
                         <td class="p-3 text-center space-x-1">
-                            <button onclick="editTransaction(${t.id})" class="text-slate-400 hover:text-blue-500 mr-1" title="수정"><i class="fa-solid fa-pen"></i></button>
-                            <button onclick="deleteTransaction(${t.id})" class="text-slate-400 hover:text-rose-500" title="삭제"><i class="fa-solid fa-trash-can"></i></button>
+                            <button onclick="editTransaction(${transactionId})" class="text-slate-400 hover:text-blue-500 mr-1" title="수정"><i class="fa-solid fa-pen"></i></button>
+                            <button onclick="deleteTransaction(${transactionId})" class="text-slate-400 hover:text-rose-500" title="삭제"><i class="fa-solid fa-trash-can"></i></button>
                         </td>
                     `;
                     body.appendChild(tr);
@@ -869,12 +892,12 @@
                         card.className = 'transaction-mobile-card liquid-pill rounded-2xl p-3.5 border border-white/80';
                         card.innerHTML = `
                             <div class="flex items-start justify-between gap-2">
-                                <div class="min-w-0"><span class="inline-flex rounded-full px-2 py-1 text-[10px] font-bold ${typeColor}">${typeLabel}</span><span class="ml-2 text-[10px] font-semibold text-slate-400">${t.date || ''}</span></div>
+                                <div class="min-w-0"><span class="inline-flex rounded-full px-2 py-1 text-[10px] font-bold ${typeColor}">${typeLabel}</span><span class="ml-2 text-[10px] font-semibold text-slate-400">${escapeHtml(t.date || '')}</span></div>
                                 <strong class="shrink-0 text-sm font-black text-slate-800">${formatNumberOnly(t.amount)}원</strong>
                             </div>
-                            <div class="mt-2 break-words text-sm font-extrabold text-slate-800">${t.title || '내역'}${recurring}</div>
-                            <div class="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 text-[11px] text-slate-500"><span class="font-bold text-slate-600">${t.category || '미분류'}</span><span aria-hidden="true">·</span><span class="break-all">${t.paymentMethod || '결제수단 없음'}</span></div>
-                            <div class="mt-3 flex justify-end gap-4 border-t border-white/70 pt-2"><button onclick="editTransaction(${t.id})" class="text-xs font-bold text-blue-600"><i class="fa-solid fa-pen mr-1"></i>수정</button><button onclick="deleteTransaction(${t.id})" class="text-xs font-bold text-rose-600"><i class="fa-solid fa-trash-can mr-1"></i>삭제</button></div>
+                            <div class="mt-2 break-words text-sm font-extrabold text-slate-800">${escapeHtml(t.title || '내역')}${recurring}</div>
+                            <div class="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 text-[11px] text-slate-500"><span class="font-bold text-slate-600">${escapeHtml(t.category || '미분류')}</span><span aria-hidden="true">·</span><span class="break-all">${escapeHtml(t.paymentMethod || '결제수단 없음')}</span></div>
+                            <div class="mt-3 flex justify-end gap-4 border-t border-white/70 pt-2"><button onclick="editTransaction(${transactionId})" class="text-xs font-bold text-blue-600"><i class="fa-solid fa-pen mr-1"></i>수정</button><button onclick="deleteTransaction(${transactionId})" class="text-xs font-bold text-rose-600"><i class="fa-solid fa-trash-can"></i>삭제</button></div>
                         `;
                         cards.appendChild(card);
                     }
@@ -1010,15 +1033,15 @@
                             <div class="flex min-w-0 items-center justify-between gap-2">
                                 <div class="flex min-w-0 items-center gap-2 font-bold text-slate-800">
                                     <span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold border ${catInfo.color} shrink-0">${catInfo.label}</span>
-                                    <span class="min-w-0 truncate" title="${item.name || ''}">${item.name || '자산명 없음'}</span>
+                                    <span class="min-w-0 truncate" title="${escapeHtml(item.name || '')}">${escapeHtml(item.name || '자산명 없음')}</span>
                                 </div>
                                 <div class="shrink-0 text-right font-black text-slate-800">${formatNumberOnly(netVal)}원</div>
                             </div>
                             <div class="mt-2 flex items-center justify-between gap-2 border-t border-slate-100 pt-2 text-[10px]">
                                 <span class="min-w-0 truncate text-slate-500">${debt > 0 ? `대출 ${formatNumberOnly(debt)}원` : '대출 없음'}</span>
                                 <div class="flex shrink-0 items-center gap-3">
-                                    <button onclick="editAssetItem('${item.group}', ${item.idx})" class="text-slate-400 hover:text-blue-500 transition-colors" title="수정"><i class="fa-solid fa-pen"></i></button>
-                                    <button onclick="deleteAssetItem('${item.group}', ${item.idx})" class="text-slate-400 hover:text-rose-500 transition-colors" title="삭제"><i class="fa-solid fa-trash-can"></i></button>
+                                    <button onclick="editAssetItem('${escapeHtml(item.group)}', ${Number.isSafeInteger(item.idx) ? item.idx : -1})" class="text-slate-400 hover:text-blue-500 transition-colors" title="수정"><i class="fa-solid fa-pen"></i></button>
+                                    <button onclick="deleteAssetItem('${escapeHtml(item.group)}', ${Number.isSafeInteger(item.idx) ? item.idx : -1})" class="text-slate-400 hover:text-rose-500 transition-colors" title="삭제"><i class="fa-solid fa-trash-can"></i></button>
                                 </div>
                             </div>
                         `;
@@ -1119,7 +1142,7 @@
             const type = document.getElementById('settingCatType').value || 'expense';
             (window.CATEGORIES[type] || []).forEach((c, idx) => {
                 const div = document.createElement('div'); div.className = 'p-2 bg-white rounded-xl flex justify-between text-xs items-center';
-                div.innerHTML = `<span><i class="fa-solid ${c.icon} mr-2" style="color:${c.color}"></i>${c.name}</span><button onclick="deleteCategoryItem('${type}', ${idx})" class="text-amber-700"><i class="fa-solid fa-trash-can"></i></button>`;
+                div.innerHTML = `<span><i class="fa-solid ${safeIcon(c.icon)} mr-2" style="color:${safeColor(c.color)}"></i>${escapeHtml(c.name)}</span><button onclick="deleteCategoryItem('${['expense','fixed_expense','income','saving'].includes(type) ? type : 'expense'}', ${idx})" class="text-amber-700"><i class="fa-solid fa-trash-can"></i></button>`;
                 list.appendChild(div);
             });
         };
@@ -1144,7 +1167,7 @@
             const list = document.getElementById('paymentSettingsList'); if (!list) return; list.innerHTML = '';
             (window.paymentMethods || []).forEach((p, idx) => {
                 const div = document.createElement('div'); div.className = 'p-2 bg-white rounded-xl flex justify-between text-xs items-center';
-                div.innerHTML = `<span>${p}</span><button onclick="deletePaymentMethodItem(${idx})" class="text-amber-700"><i class="fa-solid fa-trash-can"></i></button>`;
+                div.innerHTML = `<span>${escapeHtml(p)}</span><button onclick="deletePaymentMethodItem(${idx})" class="text-amber-700"><i class="fa-solid fa-trash-can"></i></button>`;
                 list.appendChild(div);
             });
         };
@@ -1260,7 +1283,7 @@
             allCats.forEach(cat => {
                 const val = window.categoryBudgets[cat.name] || 0; sum += val;
                 const div = document.createElement('div'); div.className = 'flex justify-between items-center p-2 liquid-pill rounded-xl text-xs';
-                div.innerHTML = `<span><i class="fa-solid ${cat.icon} mr-1.5" style="color:${cat.color}"></i>${cat.name}</span><input type="number" inputmode="numeric" data-cat="${cat.name}" value="${val}" step="1000" min="0" oninput="updateCategorySumDisplay()" class="budget-input w-24 p-1 rounded-lg text-right font-bold bg-white border border-slate-200">`;
+                div.innerHTML = `<span><i class="fa-solid ${safeIcon(cat.icon)} mr-1.5" style="color:${safeColor(cat.color)}"></i>${escapeHtml(cat.name)}</span><input type="number" inputmode="numeric" data-cat="${escapeHtml(cat.name)}" value="${val}" step="1000" min="0" oninput="updateCategorySumDisplay()" class="budget-input w-24 p-1 rounded-lg text-right font-bold bg-white border border-slate-200">`;
                 container.appendChild(div);
             });
             document.getElementById('overallBudgetInput').value = window.overallBudget > 0 ? window.overallBudget : sum;
@@ -1370,14 +1393,14 @@
                         link: { webUrl: invite.url, mobileWebUrl: invite.url }
                     });
                     if (result && typeof result.catch === 'function') result.catch((error) => {
-                        console.error('Kakao share failed', { code: error?.code, message: error?.message, url: invite.url });
+                        // The invite URL is a temporary bearer token; never include it in diagnostics.
                         if (String(error?.code) === '4002' || String(error?.code) === '4041') {
                             window.showToast(`카카오 공유 설정 오류 (${error.code}): 카카오 디벨로퍼스의 제품 링크에 jbusinessero-ctrl.github.io 도메인이 등록되어 있는지 확인해 주세요.`);
                         } else window.showToast(`카카오톡 공유에 실패했습니다${error?.code ? ` (${error.code})` : ''}. ${error?.message || '잠시 후 다시 시도해 주세요.'}`);
                     });
                     closeModal('inviteModal');
                 } catch (error) {
-                    console.error('Kakao share failed', { code: error?.code, message: error?.message, url: invite.url });
+                    // The invite URL is a temporary bearer token; never include it in diagnostics.
                     window.showToast(`카카오톡 공유에 실패했습니다${error?.code ? ` (${error.code})` : ''}. ${error?.message || '잠시 후 다시 시도해 주세요.'}`);
                 }
                 return;
@@ -1410,17 +1433,12 @@
         import { getAuth, onAuthStateChanged, signInWithCustomToken, signOut, setPersistence, browserLocalPersistence, inMemoryPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-functions.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyBLE0RO9_QbTIehRPlUMMftVIQCUkgs4o8",
-            authDomain: "jero-a0ce0.firebaseapp.com",
-            projectId: "jero-a0ce0",
-            storageBucket: "jero-a0ce0.firebasestorage.app",
-            messagingSenderId: "634637692017",
-            appId: "1:634637692017:web:2fe49878a6e6bb6d4d3fd0"
-        };
-
+        // Public browser identifiers live in app-config.js; they are not authentication secrets.
+        // Never put Kakao REST keys, client secrets or service-account credentials in client code.
+        const firebaseConfig = window.DOOLIMOA_PUBLIC_CONFIG?.firebase;
+        if (!firebaseConfig || !window.DOOLIMOA_PUBLIC_CONFIG?.kakaoJavaScriptKey) throw new Error('Public app configuration is missing.');
         const app = initializeApp(firebaseConfig);
-        const KAKAO_JS_KEY = 'b77b71fcbc24aab2a81e398d4ebd9b16';
+        const KAKAO_JS_KEY = window.DOOLIMOA_PUBLIC_CONFIG.kakaoJavaScriptKey;
         if (window.Kakao && !window.Kakao.isInitialized()) window.Kakao.init(KAKAO_JS_KEY);
         localStorage.removeItem('shinhon_room_code');
         const auth = getAuth(app);
@@ -1428,7 +1446,7 @@
         // Make the Kakao OAuth return survive page reloads. Some WebViews (file://)
         // do not support browser storage, so retain an in-memory fallback there.
         const authPersistenceReady = setPersistence(auth, browserLocalPersistence).catch(async (error) => {
-            console.warn('Persistent Firebase Auth storage is unavailable; using in-memory auth.', error);
+            console.warn('Firebase Auth persistence fallback:', error?.code || 'unknown');
             await setPersistence(auth, inMemoryPersistence);
         });
         const functions = getFunctions(app, 'us-central1');
@@ -1489,7 +1507,7 @@
                 window.lastLedgerRevision = (window.lastLedgerRevision || 0) + 1;
                 return true;
             } catch (error) {
-                console.error('Secure save failed', error);
+                console.error('Secure save failed:', error?.code || 'unknown');
                 window.lastLedgerSaveError = error.message || '서버 저장에 실패했습니다.';
                 if (error.code === 'functions/aborted') await window.loadSecureLedger().catch(() => {});
                 window.showToast(error.message);
@@ -1513,7 +1531,7 @@
         window.onNativeFirebaseCustomToken = async (customToken) => {
             try { await authPersistenceReady; await signInWithCustomToken(auth, customToken); }
             catch (error) {
-                console.error('Native Firebase sign-in failed', { code: error?.code, message: error?.message });
+                console.error('Native Firebase sign-in failed:', error?.code || 'unknown');
                 showKakaoLoginError(`Firebase 로그인에 실패했습니다${error?.code ? ` (${error.code})` : ''}. ${error?.message || '다시 시도해 주세요.'}`);
             }
         };
@@ -1551,7 +1569,7 @@
                     }
                     await signInWithCustomToken(auth, result.customToken);
                 })).catch(error => {
-                    console.error('Kakao sign-in callback failed', error);
+                    console.error('Kakao sign-in callback failed:', error?.code || 'unknown');
                     showKakaoLoginError(error.message || '카카오 로그인을 완료하지 못했습니다.');
                 });
             }
@@ -1576,7 +1594,7 @@
                 document.getElementById('roomSetupStep').hidden = true;
             }
         })).catch(error => {
-            console.error('Firebase Auth initialization failed', error);
+            console.error('Firebase Auth initialization failed:', error?.code || 'unknown');
             showKakaoLoginError('로그인 세션을 초기화하지 못했습니다. 페이지를 새로고침해 주세요.');
         });
         window.setInterval(async () => {
@@ -1592,7 +1610,7 @@
                     }
                     await window.loadSecureLedger();
                 }
-            } catch (error) { console.warn('Secure refresh failed', error); }
+            } catch (error) { console.warn('Secure refresh failed:', error?.code || 'unknown'); }
         }, 12000);
     </script>
 </body>

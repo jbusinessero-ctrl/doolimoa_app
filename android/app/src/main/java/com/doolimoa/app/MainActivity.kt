@@ -19,7 +19,6 @@ import android.widget.TextView
 import com.android.installreferrer.api.InstallReferrerClient
 import com.android.installreferrer.api.InstallReferrerStateListener
 import com.kakao.sdk.common.KakaoSdk
-import com.kakao.sdk.common.util.Utility
 import com.kakao.sdk.template.model.Link
 import com.kakao.sdk.template.model.TextTemplate
 import com.kakao.sdk.user.UserApiClient
@@ -164,7 +163,7 @@ class MainActivity : Activity() {
             val callback: (com.kakao.sdk.auth.model.OAuthToken?, Throwable?) -> Unit = { token, error ->
                 when {
                     error != null && UserApiClient.instance.isKakaoTalkLoginAvailable(this@MainActivity) -> {
-                        Log.w("DoolimoaAuth", "KakaoTalk app login failed; trying account login", error)
+                        Log.w("DoolimoaAuth", "KakaoTalk app login failed; trying account login (${error.javaClass.simpleName})")
                         UserApiClient.instance.loginWithKakaoAccount(this@MainActivity) { accountToken, accountError ->
                             if (accountError != null || accountToken == null) {
                                 reportNativeLoginFailure(
@@ -211,10 +210,10 @@ class MainActivity : Activity() {
     }
 
     private fun reportNativeLoginFailure(stage: String, error: Throwable, fallbackStage: String? = null, fallbackError: Throwable? = null) {
-        Log.e("DoolimoaAuth", "$stage failed (${error.javaClass.simpleName}): ${error.message}", error)
-        if (fallbackError != null) Log.e("DoolimoaAuth", "$fallbackStage failed (${fallbackError.javaClass.simpleName}): ${fallbackError.message}", fallbackError)
-        val currentKeyHash = runCatching { Utility.getKeyHash(this@MainActivity) }.getOrNull()
-        currentKeyHash?.let { Log.e("DoolimoaAuth", "Current Android key hash: $it") }
+        // Keep OAuth details and key hashes out of logcat; surface sanitized diagnostics only in the UI.
+        Log.e("DoolimoaAuth", "$stage failed (${error.javaClass.simpleName})")
+        if (fallbackError != null) Log.e("DoolimoaAuth", "$fallbackStage failed (${fallbackError.javaClass.simpleName})")
+        val currentKeyHash = runCatching { com.kakao.sdk.common.util.Utility.getKeyHash(this@MainActivity) }.getOrNull()
         val detail = buildString {
             append("$stage 실패: ${error.javaClass.simpleName}")
             error.message?.takeIf { it.isNotBlank() }?.let { append(" — ").append(it) }

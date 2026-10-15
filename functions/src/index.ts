@@ -106,7 +106,8 @@ export const exchangeKakao = onRequest({ cors: ["https://jbusinessero-ctrl.githu
       const status = error.code === "resource-exhausted" ? 429 : error.code === "unauthenticated" ? 401 : error.code === "permission-denied" ? 403 : 400;
       res.status(status).json({ error: error.code }); return;
     }
-    logger.error("Kakao token exchange failed", error);
+    // Avoid writing exception payloads that may contain upstream response details or credentials.
+    logger.error("Kakao token exchange failed", { errorType: error instanceof Error ? error.name : "unknown" });
     res.status(500).json({ error: "internal" });
   }
 });
@@ -134,10 +135,12 @@ function normalizeSnapshot(input: unknown) {
   const fields = ["transactions", "categoryBudgets", "overallBudget", "categories", "paymentMethods", "ledgerName", "assets"];
   const data: Record<string, unknown> = {};
   for (const field of fields) if (field in body) data[field] = body[field];
-  if (data.transactions !== undefined && (!Array.isArray(data.transactions) || data.transactions.length > 5000)) throw new HttpsError("invalid-argument", "거래 내역이 너무 많거나 올바르지 않습니다.");
-  if (data.assets !== undefined && (!data.assets || typeof data.assets !== "object")) throw new HttpsError("invalid-argument", "자산 데이터 형식이 올바르지 않습니다.");
-  if (data.categoryBudgets !== undefined && (!data.categoryBudgets || typeof data.categoryBudgets !== "object")) throw new HttpsError("invalid-argument", "예산 데이터 형식이 올바르지 않습니다.");
-  if (data.overallBudget !== undefined && (typeof data.overallBudget !== "number" || !Number.isFinite(data.overallBudget) || data.overallBudget < 0)) throw new HttpsError("invalid-argument", "예산 금액이 올바르지 않습니다.");
+  if (data.transactions !== undefined) data.transactions = normalizeTransactions(data.transactions);
+  if (data.assets !== undefined) data.assets = normalizeAssets(data.assets);
+  if (data.categories !== undefined && data.categories !== null) data.categories = normalizeCategories(data.categories);
+  if (data.paymentMethods !== undefined && data.paymentMethods !== null) data.paymentMethods = normalizeStringList(data.paymentMethods, 100, 80, "결제수단");
+  if (data.categoryBudgets !== undefined) data.categoryBudgets = normalizeBudgets(data.categoryBudgets);
+  if (data.overallBudget !== undefined && !validMoney(data.overallBudget)) throw new HttpsError("invalid-argument", "예산 금액이 올바르지 않습니다.");
   if (data.ledgerName !== undefined && (typeof data.ledgerName !== "string" || !data.ledgerName.trim() || data.ledgerName.length > 60)) throw new HttpsError("invalid-argument", "가계부 이름은 1~60자로 입력해 주세요.");
   if ("savingsGoals" in body || "savingsGoal" in body) {
     data.savingsGoals = normalizeSavingsGoals(body.savingsGoals ?? (body.savingsGoal == null ? [] : [body.savingsGoal]));
@@ -145,6 +148,102 @@ function normalizeSnapshot(input: unknown) {
   }
   if (Buffer.byteLength(JSON.stringify(data), "utf8") > MAX_LEDGER_BYTES) throw new HttpsError("resource-exhausted", "저장 가능한 가계부 데이터 크기를 초과했습니다.");
   return data;
+}
+
+// Validate and whitelist all client-controlled ledger fields before Admin SDK writes.
+// This prevents malformed payloads and limits stored XSS/oversized-document abuse.
+function validMoney(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+}
+
+function boundedText(value: unknown, max: number, label: string, allowEmpty = true): string {
+  if (typeof value !== "string" || value.length > max || (!allowEmpty && !value.trim())) {
+    throw new HttpsError("invalid-argument", `${label} 입력값을 확인해 주세요.`);
+  }
+  return value;
+}
+
+function normalizeTransactions(input: unknown) {
+  if (!Array.isArray(input) || input.length > 5000) throw new HttpsError("invalid-argument", "거래 내역이 너무 많거나 올바르지 않습니다.");
+  const types = new Set(["expense", "fixed_expense", "income", "saving"]);
+  return input.map((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) throw new HttpsError("invalid-argument", "거래 데이터 형식이 올바르지 않습니다.");
+    const t = item as Record<string, unknown>;
+    if (!Number.isSafeInteger(t.id) || !validMoney(t.amount) || typeof t.date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(t.date) || !types.has(String(t.type))) {
+      throw new HttpsError("invalid-argument", "거래 날짜, 구분 또는 금액을 확인해 주세요.");
+    }
+    const result: Record<string, unknown> = {
+      id: t.id, date: t.date, type: t.type,
+      category: boundedText(t.category, 80, "카테고리"),
+      title: boundedText(t.title, 160, "거래 내용"),
+      amount: t.amount,
+      paymentMethod: boundedText(t.paymentMethod, 80, "결제수단"),
+      memo: boundedText(t.memo ?? "", 2000, "메모"),
+      isRecurring: t.isRecurring === true
+    };
+    if (t.recurringParentId !== undefined && Number.isSafeInteger(t.recurringParentId)) result.recurringParentId = t.recurringParentId;
+    return result;
+  });
+}
+
+function normalizeAssets(input: unknown) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) throw new HttpsError("invalid-argument", "자산 데이터 형식이 올바르지 않습니다.");
+  const source = input as Record<string, unknown>;
+  const groups = ["stocks", "realEstate", "vehicles", "pensions", "savings"];
+  return Object.fromEntries(groups.map((group) => {
+    const items = source[group] ?? [];
+    if (!Array.isArray(items) || items.length > 500) throw new HttpsError("invalid-argument", "자산 목록이 너무 많거나 올바르지 않습니다.");
+    return [group, items.map((item) => {
+      if (!item || typeof item !== "object" || Array.isArray(item)) throw new HttpsError("invalid-argument", "자산 항목 형식이 올바르지 않습니다.");
+      const asset = item as Record<string, unknown>;
+      if (!Number.isSafeInteger(asset.id)) throw new HttpsError("invalid-argument", "자산 식별자가 올바르지 않습니다.");
+      const debt = asset.debt ?? 0;
+      if (!validMoney(debt) || (asset.value !== undefined && !validMoney(asset.value))) throw new HttpsError("invalid-argument", "자산 금액을 확인해 주세요.");
+      const clean: Record<string, unknown> = {
+        id: asset.id, name: boundedText(asset.name, 120, "자산명"), debt,
+        memo: boundedText(asset.memo ?? "", 2000, "자산 메모")
+      };
+      if (asset.value !== undefined) clean.value = asset.value;
+      if (group === "stocks") {
+        const qty = asset.qty ?? 1, currentPrice = asset.currentPrice ?? 0;
+        if (typeof qty !== "number" || !Number.isFinite(qty) || qty < 0 || qty > 1_000_000_000 || !validMoney(currentPrice)) throw new HttpsError("invalid-argument", "주식 수량 또는 가격을 확인해 주세요.");
+        clean.qty = qty; clean.currentPrice = currentPrice;
+      }
+      return clean;
+    })];
+  }));
+}
+
+function normalizeCategories(input: unknown) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) throw new HttpsError("invalid-argument", "카테고리 데이터 형식이 올바르지 않습니다.");
+  const source = input as Record<string, unknown>;
+  const groups = ["expense", "fixed_expense", "income", "saving"];
+  return Object.fromEntries(groups.map((group) => {
+    const list = source[group] ?? [];
+    if (!Array.isArray(list) || list.length > 100) throw new HttpsError("invalid-argument", "카테고리 목록이 너무 많거나 올바르지 않습니다.");
+    return [group, list.map((item) => {
+      if (!item || typeof item !== "object" || Array.isArray(item)) throw new HttpsError("invalid-argument", "카테고리 형식이 올바르지 않습니다.");
+      const category = item as Record<string, unknown>;
+      const color = typeof category.color === "string" && /^#[0-9a-f]{6}$/i.test(category.color) ? category.color : "#d18a00";
+      const icon = typeof category.icon === "string" && /^fa-[a-z0-9-]{1,48}$/i.test(category.icon) ? category.icon : "fa-tag";
+      return { name: boundedText(category.name, 80, "카테고리명", false), icon, color };
+    })];
+  }));
+}
+
+function normalizeStringList(input: unknown, maxItems: number, maxLength: number, label: string) {
+  if (!Array.isArray(input) || input.length > maxItems) throw new HttpsError("invalid-argument", `${label} 목록이 너무 많거나 올바르지 않습니다.`);
+  return input.map((value) => boundedText(value, maxLength, label, false));
+}
+
+function normalizeBudgets(input: unknown) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) throw new HttpsError("invalid-argument", "예산 데이터 형식이 올바르지 않습니다.");
+  const entries = Object.entries(input as Record<string, unknown>);
+  if (entries.length > 200) throw new HttpsError("invalid-argument", "예산 카테고리가 너무 많습니다.");
+  return Object.fromEntries(entries.map(([name, amount]) => {
+    if (!name || name.length > 80 || !validMoney(amount)) throw new HttpsError("invalid-argument", "카테고리 예산을 확인해 주세요.");
+    return [name, amount];
+  }));
 }
 
 function normalizeSavingsGoals(input: unknown) {

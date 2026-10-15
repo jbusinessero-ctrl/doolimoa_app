@@ -1,6 +1,13 @@
 # 둘이모아 보안 서버 배포 및 앱 설정
 
-앱은 Firestore SDK를 직접 사용하지 않습니다. Firestore 규칙은 모든 클라이언트 요청을 거부하고, 인증된 Cloud Functions만 Admin SDK로 데이터를 다룹니다. 기존 `MONG-xxxx` 참여 코드는 제거했으며 기존 `artifacts/.../ledgers` 경로 데이터는 읽거나 옮기지 않습니다.
+앱은 Firestore SDK를 직접 사용하지 않습니다. Firestore 규칙은 모든 클라이언트 요청을 거부하고, 인증된 Cloud Functions만 Admin SDK로 데이터를 다룹니다. 브라우저에 필요한 Firebase 웹 설정 및 Kakao JavaScript 키는 `app-config.js`로 분리했지만, 이 값들은 브라우저에서 사용되므로 공개 값입니다. 실제 비밀 값은 Cloud Functions Secret Manager에만 둡니다. 기존 `MONG-xxxx` 참여 코드는 제거했으며 기존 `artifacts/.../ledgers` 경로 데이터는 읽거나 옮기지 않습니다.
+
+## 클라이언트 설정과 민감정보
+
+- `app-config.js`에는 Firebase 웹 설정과 Kakao JavaScript 키만 둡니다. 웹에서 이 값들은 방문자에게 보이므로 `.env` 파일명으로 바꾸더라도 비밀 정보가 되지 않습니다. Firebase API 키는 Firebase Auth/Firestore의 접근 권한이 아니며, 보안 경계는 인증 및 전면 차단된 Firestore Rules입니다.
+- Firebase Console의 API 키 제한에서 사용 웹사이트(도메인)와 필요한 API를 제한하고, Kakao Developers에서는 JavaScript 키의 웹 도메인을 등록하세요. REST 키, Kakao Client Secret, 서비스 계정 키는 HTML, Android assets, 공개 설정 파일에 두지 않습니다.
+- LocalStorage에는 온보딩 완료 여부와 일회성 OAuth `state`만 저장하고, 가계부 본문/인증 토큰은 저장하지 않습니다. Firebase Auth의 persistence는 Firebase SDK가 관리합니다. OAuth `state`는 콜백에서 즉시 삭제됩니다.
+- UI 로그는 오류 코드/종류만 남기도록 제한합니다. Kakao 초대 URL은 일회성 초대 토큰을 포함하므로 로그에 출력하지 않습니다. 가계부 텍스트는 화면 출력 시 HTML 이스케이프하고 아이콘/색상 입력은 제한합니다.
 
 ## 데이터 구조
 
@@ -55,4 +62,4 @@
 
 - `ledgerApi`는 기존 단일 문서 화면을 유지할 수 있도록 가계부 본문을 서버에서만 읽고 쓰는 callable API로 제공합니다. member UID, owner, 멤버 목록, 상태, revision 같은 권한 필드는 클라이언트 쓰기 입력에서 제거되어 있고, revision 비교가 동시 저장 덮어쓰기를 막습니다.
 - 공유 ledger 데이터는 두 구성원이 편집할 수 있습니다. 감사 이벤트는 작업자 UID와 시각을 기록하며, 거래/자산 단위 CRUD와 변경 전후 감사 세부정보는 후속 개선 범위입니다.
-- WebView 화면은 변경 후 `android/app/src/main/assets/`에 동일한 `index.html`과 `invite.html`을 반영해야 합니다.
+- WebView 화면은 변경 후 `android/app/src/main/assets/`에 동일한 `index.html`, `app-config.js`, `manifest.json`, `sw.js`, 아이콘 파일을 반영해야 합니다.

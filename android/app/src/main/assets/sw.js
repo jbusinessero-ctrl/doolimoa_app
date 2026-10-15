@@ -1,10 +1,12 @@
 // PWABuilder 서비스 워커 오프라인 지원 스크립트 (안전성 강화 버전)
-const CACHE_NAME = 'doolimoa-v4-icon-update';
+const CACHE_NAME = 'doolimoa-v5-security-icon';
 const ASSETS = [
     './',
     './index.html',
     './invite.html',
     './manifest.json',
+    './app-config.js',
+    './doolimoa_app_icon_192x192.png',
     './doolimoa_app_icon_512x512.png'
 ];
 
@@ -14,9 +16,7 @@ self.addEventListener('install', (event) => {
             // 개별 파일 개별 추가 (특정 파일이 없어도 SW 설치가 중단되지 않도록 방어)
             return Promise.allSettled(
                 ASSETS.map((asset) =>
-                    cache.add(asset).catch((err) => {
-                        console.warn(`[SW] 개별 캐시 실패 무시됨 (${asset}):`, err);
-                    })
+                    cache.add(asset).catch(() => {})
                 )
             );
         })
