@@ -912,20 +912,26 @@
         };
 
         window.editTransaction = (id) => {
-            const target = window.transactions.find(t => t.id === id);
-            if (!target) return;
-            window.editingTransactionId = id;
-            document.getElementById('tDate').value = target.date || new Date().toISOString().split('T')[0];
-            document.getElementById('tType').value = target.type || 'expense';
-            window.updateCategoryDropdown();
-            document.getElementById('tCategory').value = target.category || '';
-            document.getElementById('tTitle').value = target.title || '';
-            document.getElementById('tAmount').value = target.amount || 0;
-            if (target.paymentMethod && document.getElementById('tPayment')) document.getElementById('tPayment').value = target.paymentMethod;
-            document.getElementById('tMemo').value = target.memo || '';
-            document.getElementById('tRecurring').checked = !!target.isRecurring;
-            document.getElementById('transactionModalTitle').innerHTML = '<i class="fa-solid fa-pen-to-square text-rose-500 mr-2"></i>거래 내역 수정';
-            openModal('transactionModal');
+            try {
+                const target = window.transactions.find(t => t.id === id);
+                if (!target) return window.showToast('수정할 내역을 찾을 수 없습니다.');
+                window.editingTransactionId = id;
+                document.getElementById('tDate').value = target.date || new Date().toISOString().split('T')[0];
+                document.getElementById('tType').value = target.type || 'expense';
+                window.updateCategoryDropdown();
+                document.getElementById('tCategory').value = target.category || '';
+                document.getElementById('tTitle').value = target.title || '';
+                document.getElementById('tAmount').value = target.amount || 0;
+                // Keep historical values visible when a payment method was later deleted.
+                window.populatePaymentDropdown(target.paymentMethod || '');
+                document.getElementById('tMemo').value = target.memo || '';
+                document.getElementById('tRecurring').checked = !!target.isRecurring;
+                document.getElementById('transactionModalTitle').innerHTML = '<i class="fa-solid fa-pen-to-square text-rose-500 mr-2"></i>거래 내역 수정';
+                openModal('transactionModal');
+            } catch (_) {
+                window.editingTransactionId = null;
+                window.showToast('수정 화면을 열지 못했습니다. 결제수단을 확인한 뒤 다시 시도해 주세요.');
+            }
         };
 
         window.deleteTransaction = (id) => {
@@ -949,17 +955,32 @@
             }
         };
 
+        window.populatePaymentDropdown = (selectedValue = '') => {
+            const select = document.getElementById('tPayment');
+            if (!select) return;
+            select.replaceChildren();
+            const methods = Array.isArray(window.paymentMethods) ? window.paymentMethods : [];
+            const exists = selectedValue && methods.includes(selectedValue);
+            if (selectedValue && !exists) {
+                // Soft-retain only in the edit form so older transactions stay readable and editable.
+                select.appendChild(new Option(`${selectedValue} (삭제된 결제수단)`, selectedValue));
+            }
+            if (!selectedValue || !exists) select.appendChild(new Option('결제수단 선택', '', true, !selectedValue));
+            methods.forEach(method => select.appendChild(new Option(method, method, false, method === selectedValue)));
+            if (selectedValue && !exists) select.value = selectedValue;
+        };
+
         window.openTransactionModal = () => {
             window.editingTransactionId = null;
             document.getElementById('transactionForm').reset();
             const dateInp = document.getElementById('tDate'); if (dateInp) dateInp.value = new Date().toISOString().split('T')[0];
             window.updateCategoryDropdown();
-            const pSel = document.getElementById('tPayment'); if (pSel) { pSel.innerHTML = ''; window.paymentMethods.forEach(p => pSel.appendChild(new Option(p, p))); }
+            window.populatePaymentDropdown();
             document.getElementById('transactionModalTitle').innerHTML = '<i class="fa-solid fa-pen-to-square text-rose-500 mr-2"></i>거래 내역 등록';
             openModal('transactionModal');
         };
 
-        window.handleTransactionSubmit = (e) => {
+        window.handleTransactionSubmit = async (e) => {
             e.preventDefault();
             const typeVal = document.getElementById('tType').value;
             const dataObj = {
@@ -969,16 +990,42 @@
                 paymentMethod: typeVal === 'income' ? '-' : document.getElementById('tPayment').value,
                 memo: document.getElementById('tMemo').value, isRecurring: document.getElementById('tRecurring').checked
             };
+            const saveButton = document.querySelector('#transactionForm button[type="submit"]');
+            const previousTransactions = window.transactions;
+            const isEditing = window.editingTransactionId !== null && window.editingTransactionId !== undefined;
+            if (saveButton) { saveButton.disabled = true; saveButton.textContent = '저장 중...'; }
 
-            if (window.editingTransactionId) {
+            if (isEditing) {
                 const idx = window.transactions.findIndex(t => t.id === window.editingTransactionId);
-                if (idx !== -1) window.transactions[idx] = { ...window.transactions[idx], ...dataObj };
-                window.editingTransactionId = null;
+                if (idx === -1) {
+                    if (saveButton) { saveButton.disabled = false; saveButton.textContent = '저장하기'; }
+                    return window.showToast('수정할 내역을 찾을 수 없습니다.');
+                }
+                window.transactions = window.transactions.map((t, i) => i === idx ? { ...t, ...dataObj } : t);
             } else {
-                window.transactions.push({ id: Date.now(), ...dataObj });
+                window.transactions = [...window.transactions, { id: Date.now(), ...dataObj }];
             }
 
-            window.saveStateToFirestore(); closeModal('transactionModal'); window.renderDashboard(); window.renderTransactions();
+            // Optimistic UI: update totals/list immediately, then reconcile with the server result.
+            window.renderDashboard(); window.renderTransactions();
+            if (window.currentView === 'calendar') window.renderCalendar();
+            const saved = await window.saveStateToFirestore();
+            if (!saved) {
+                try { await window.loadSecureLedger(); }
+                catch (_) {
+                    window.transactions = previousTransactions;
+                    window.renderDashboard(); window.renderTransactions();
+                    if (window.currentView === 'calendar') window.renderCalendar();
+                }
+                if (saveButton) { saveButton.disabled = false; saveButton.textContent = '저장하기'; }
+                return;
+            }
+
+            window.editingTransactionId = null;
+            closeModal('transactionModal');
+            if (saveButton) { saveButton.disabled = false; saveButton.textContent = '저장하기'; }
+            // Render once more after confirmation so the dashboard and list reflect committed state.
+            window.renderDashboard(); window.renderTransactions();
             if (window.currentView === 'calendar') window.renderCalendar();
             window.showToast('저장되었습니다.');
         };
