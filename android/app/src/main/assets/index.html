@@ -525,6 +525,8 @@
         };
 
         window.paymentMethods = ['공동 카드', '공동 계좌이체', '개인 카드 1', '개인 카드 2', '현금/제로페이'];
+        // Tombstones preserve deleted names referenced by historical transactions.
+        window.deletedPaymentMethods = [];
         window.categoryBudgets = {};
         window.savingsGoals = [];
         window.overallBudget = 0;
@@ -694,7 +696,8 @@
             document.getElementById('kpiExpense').textContent = formatKRW(exp);
             document.getElementById('kpiSavings').textContent = formatKRW(sav);
 
-            const catSum = Object.values(window.categoryBudgets || {}).reduce((a, b) => a + (parseInt(b) || 0), 0);
+            const activeExpenseCategories = [...window.CATEGORIES.expense, ...window.CATEGORIES.fixed_expense].filter(category => category?.isActive !== false);
+            const catSum = activeExpenseCategories.reduce((sum, category) => sum + (parseInt(window.categoryBudgets?.[category.name], 10) || 0), 0);
             const totalBudget = window.overallBudget > 0 ? window.overallBudget : catSum;
             const pct = totalBudget > 0 ? Math.round((exp / totalBudget) * 100) : 0;
             document.getElementById('kpiExpensePercent').textContent = `${pct}%`;
@@ -827,7 +830,7 @@
 
         window.renderCategoryBudgetGrid = (curr, prev) => {
             const grid = document.getElementById('categoryBudgetGrid'); if (!grid) return; grid.innerHTML = '';
-            const allCats = [...window.CATEGORIES.expense, ...window.CATEGORIES.fixed_expense];
+            const allCats = [...window.CATEGORIES.expense, ...window.CATEGORIES.fixed_expense].filter(category => category?.isActive !== false);
             const visibleCats = allCats.map(cat => ({
                 cat,
                 budget: parseInt(window.categoryBudgets[cat.name], 10) || 0,
@@ -863,15 +866,32 @@
         };
 
         window.renderCharts = (curr, prev) => {
-            const allCats = [...window.CATEGORIES.expense, ...window.CATEGORIES.fixed_expense];
-            const currTotals = allCats.map(c => curr.filter(t => t.category === c.name).reduce((s, t) => s + t.amount, 0));
-            const prevTotals = allCats.map(c => prev.filter(t => t.category === c.name).reduce((s, t) => s + t.amount, 0));
+            // Include soft-deleted categories and legacy names from transactions in historical chart totals.
+            const expenseRows = rows => rows.filter(t => t.type === 'expense' || t.type === 'fixed_expense');
+            const categoryNames = [...new Set([
+                ...window.CATEGORIES.expense.map(category => category.name),
+                ...window.CATEGORIES.fixed_expense.map(category => category.name),
+                ...expenseRows(curr).map(transaction => transaction.category),
+                ...expenseRows(prev).map(transaction => transaction.category)
+            ].filter(name => typeof name === 'string' && name.trim()))];
+            const totalFor = (rows, name) => expenseRows(rows)
+                .filter(transaction => transaction.category === name)
+                .reduce((sum, transaction) => sum + (Number(transaction.amount) || 0), 0);
+            const chartRows = categoryNames.map(name => ({ name, current: totalFor(curr, name), previous: totalFor(prev, name) }))
+                .filter(row => row.current > 0 || row.previous > 0);
+            const chartLabels = chartRows.map(row => row.name);
+            const currTotals = chartRows.map(row => row.current);
+            const prevTotals = chartRows.map(row => row.previous);
+            const chartColors = chartRows.map(row => {
+                const category = [...window.CATEGORIES.expense, ...window.CATEGORIES.fixed_expense].find(item => item.name === row.name);
+                return safeColor(category?.color);
+            });
 
             const ctx1 = document.getElementById('categoryChart')?.getContext('2d');
             if (ctx1) {
                 if (categoryChartInstance) categoryChartInstance.destroy();
                 categoryChartInstance = new Chart(ctx1, {
-                    type: 'doughnut', data: { labels: allCats.map(c => c.name), datasets: [{ data: currTotals, backgroundColor: allCats.map(c => c.color) }] },
+                    type: 'doughnut', data: { labels: chartLabels, datasets: [{ data: currTotals, backgroundColor: chartColors }] },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 8, font: { size: 9 } } } }, cutout: '65%' }
                 });
             }
@@ -880,7 +900,7 @@
             if (ctx2) {
                 if (momChartInstance) momChartInstance.destroy();
                 momChartInstance = new Chart(ctx2, {
-                    type: 'bar', data: { labels: allCats.map(c => c.name.split('/')[0]), datasets: [{ label: '지난달', data: prevTotals, backgroundColor: '#e5e7eb', borderColor: '#c9cdd3', borderWidth: 1 }, { label: '이번달', data: currTotals, backgroundColor: '#ffbb0c', borderColor: '#e2a000', hoverBackgroundColor: '#f0ad00', borderWidth: 1 }] },
+                    type: 'bar', data: { labels: chartLabels, datasets: [{ label: '지난달', data: prevTotals, backgroundColor: '#e5e7eb', borderColor: '#c9cdd3', borderWidth: 1 }, { label: '이번달', data: currTotals, backgroundColor: '#ffbb0c', borderColor: '#e2a000', hoverBackgroundColor: '#f0ad00', borderWidth: 1 }] },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { boxWidth: 8, font: { size: 9 } } } } }
                 });
             }
@@ -969,8 +989,7 @@
                 window.editingTransactionId = id;
                 document.getElementById('tDate').value = target.date || new Date().toISOString().split('T')[0];
                 document.getElementById('tType').value = target.type || 'expense';
-                window.updateCategoryDropdown();
-                document.getElementById('tCategory').value = target.category || '';
+                window.updateCategoryDropdown(target.category || '');
                 document.getElementById('tTitle').value = target.title || '';
                 document.getElementById('tAmount').value = target.amount || 0;
                 // Keep historical values visible when a payment method was later deleted.
@@ -992,15 +1011,23 @@
             window.showToast('삭제되었습니다.');
         };
 
-        window.updateCategoryDropdown = () => {
+        window.updateCategoryDropdown = (selectedValue = '') => {
             const type = document.getElementById('tType')?.value || 'expense';
             const sel = document.getElementById('tCategory'); if (!sel) return; sel.innerHTML = '';
-            (window.CATEGORIES[type] || []).forEach(c => sel.appendChild(new Option(c.name, c.name)));
+            const categories = Array.isArray(window.CATEGORIES[type]) ? window.CATEGORIES[type] : [];
+            const activeCategories = categories.filter(category => category && category.isActive !== false);
+            if (selectedValue && !activeCategories.some(category => category.name === selectedValue)) {
+                // Retain the old value in edit mode without making it available to new transactions.
+                const deletedOption = new Option(`${selectedValue} (삭제됨)`, selectedValue, true, true);
+                deletedOption.disabled = true;
+                sel.appendChild(deletedOption);
+            }
+            activeCategories.forEach(c => sel.appendChild(new Option(c.name, c.name, false, c.name === selectedValue)));
 
             const filterCat = document.getElementById('filterCategory');
             if (filterCat) {
                 const cur = filterCat.value; filterCat.innerHTML = '<option value="all">모든 카테고리</option>';
-                const allCats = [...window.CATEGORIES.expense, ...window.CATEGORIES.fixed_expense, ...window.CATEGORIES.income, ...window.CATEGORIES.saving];
+                const allCats = [...window.CATEGORIES.expense, ...window.CATEGORIES.fixed_expense, ...window.CATEGORIES.income, ...window.CATEGORIES.saving].filter(category => category?.isActive !== false);
                 allCats.forEach(c => filterCat.appendChild(new Option(c.name, c.name)));
                 if (cur) filterCat.value = cur;
             }
@@ -1013,8 +1040,9 @@
             const methods = Array.isArray(window.paymentMethods) ? window.paymentMethods : [];
             const exists = selectedValue && methods.includes(selectedValue);
             if (selectedValue && !exists) {
-                // Soft-retain only in the edit form so older transactions stay readable and editable.
-                select.appendChild(new Option(`${selectedValue} (삭제된 결제수단)`, selectedValue));
+                const deletedOption = new Option(`${selectedValue} (삭제됨)`, selectedValue, true, true);
+                deletedOption.disabled = true;
+                select.appendChild(deletedOption);
             }
             if (!selectedValue || !exists) select.appendChild(new Option('결제수단 선택', '', true, !selectedValue));
             methods.forEach(method => select.appendChild(new Option(method, method, false, method === selectedValue)));
@@ -1239,6 +1267,7 @@
             const list = document.getElementById('categorySettingsList'); if (!list) return; list.innerHTML = '';
             const type = document.getElementById('settingCatType').value || 'expense';
             (window.CATEGORIES[type] || []).forEach((c, idx) => {
+                if (!c || c.isActive === false) return;
                 const div = document.createElement('div'); div.className = 'p-2 bg-white rounded-xl flex justify-between text-xs items-center';
                 div.innerHTML = `<span><i class="fa-solid ${safeIcon(c.icon)} mr-2" style="color:${safeColor(c.color)}"></i>${escapeHtml(c.name)}</span><button onclick="deleteCategoryItem('${['expense','fixed_expense','income','saving'].includes(type) ? type : 'expense'}', ${idx})" class="text-amber-700"><i class="fa-solid fa-trash-can"></i></button>`;
                 list.appendChild(div);
@@ -1250,15 +1279,25 @@
             const name = document.getElementById('newCatName').value.trim();
             const color = document.getElementById('newCatColor').value;
             if (name) {
-                window.CATEGORIES[type].push({ name, icon: 'fa-tag', color });
+                const existing = (window.CATEGORIES[type] || []).find(category => category.name === name);
+                if (existing) {
+                    if (existing.isActive !== false) return window.showToast('이미 등록된 카테고리입니다.');
+                    existing.isActive = true;
+                    existing.icon = existing.icon || 'fa-tag';
+                    existing.color = existing.color || color;
+                } else window.CATEGORIES[type].push({ name, icon: 'fa-tag', color, isActive: true });
                 document.getElementById('newCatName').value = '';
                 window.saveStateToFirestore(); window.renderCategorySettingsList(); window.updateCategoryDropdown();
             }
         };
 
         window.deleteCategoryItem = (type, idx) => {
-            window.CATEGORIES[type].splice(idx, 1);
+            const category = window.CATEGORIES[type]?.[idx];
+            if (!category || category.isActive === false) return;
+            // Soft delete: retain category metadata for existing transactions and chart history.
+            category.isActive = false;
             window.saveStateToFirestore(); window.renderCategorySettingsList(); window.updateCategoryDropdown();
+            window.renderDashboard();
         };
 
         window.renderPaymentSettingsList = () => {
@@ -1273,14 +1312,17 @@
         window.addPaymentMethodItem = () => {
             const name = document.getElementById('newPaymentName').value.trim();
             if (name) {
+                if (window.paymentMethods.includes(name)) return window.showToast('이미 등록된 결제수단입니다.');
                 window.paymentMethods.push(name);
+                window.deletedPaymentMethods = (window.deletedPaymentMethods || []).filter(deletedName => deletedName !== name);
                 document.getElementById('newPaymentName').value = '';
                 window.saveStateToFirestore(); window.renderPaymentSettingsList();
             }
         };
 
         window.deletePaymentMethodItem = (idx) => {
-            window.paymentMethods.splice(idx, 1);
+            const [deletedName] = window.paymentMethods.splice(idx, 1);
+            if (deletedName) window.deletedPaymentMethods = [...new Set([...(window.deletedPaymentMethods || []), deletedName])];
             window.saveStateToFirestore(); window.renderPaymentSettingsList();
         };
 
@@ -1591,6 +1633,7 @@
             window.overallBudget = data.overallBudget || 0;
             if (data.categories) window.CATEGORIES = data.categories;
             if (data.paymentMethods) window.paymentMethods = data.paymentMethods;
+            window.deletedPaymentMethods = Array.isArray(data.deletedPaymentMethods) ? data.deletedPaymentMethods : [];
             if (data.assets) window.assets = data.assets;
             const profile = result.profile || {};
             window.ledgerName = profile.ledgerName || '둘이모아 가계부';
@@ -1600,7 +1643,7 @@
         window.saveStateToFirestore = async () => {
             if (!auth.currentUser) return false;
             try {
-                const data = { transactions: window.transactions, categoryBudgets: window.categoryBudgets, overallBudget: window.overallBudget, categories: window.CATEGORIES, paymentMethods: window.paymentMethods, ledgerName: window.ledgerName, assets: window.assets, savingsGoals: window.savingsGoals };
+                const data = { transactions: window.transactions, categoryBudgets: window.categoryBudgets, overallBudget: window.overallBudget, categories: window.CATEGORIES, paymentMethods: window.paymentMethods, deletedPaymentMethods: window.deletedPaymentMethods, ledgerName: window.ledgerName, assets: window.assets, savingsGoals: window.savingsGoals };
                 window.isSavingSecureLedger = true;
                 await window.callLedgerApi('ledger.write', { data, expectedRevision: window.lastLedgerRevision || 1 });
                 window.lastLedgerRevision = (window.lastLedgerRevision || 0) + 1;

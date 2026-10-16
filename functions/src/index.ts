@@ -113,7 +113,7 @@ export const exchangeKakao = onRequest({ cors: ["https://jbusinessero-ctrl.githu
 });
 
 function emptyLedger() {
-  return { transactions: [], categoryBudgets: {}, overallBudget: 0, categories: null, paymentMethods: null, assets: { stocks: [], realEstate: [], vehicles: [], pensions: [], savings: [] }, savingsGoals: [] };
+  return { transactions: [], categoryBudgets: {}, overallBudget: 0, categories: null, paymentMethods: null, deletedPaymentMethods: [], assets: { stocks: [], realEstate: [], vehicles: [], pensions: [], savings: [] }, savingsGoals: [] };
 }
 
 async function callerLedger(uid: string) {
@@ -132,13 +132,14 @@ async function callerLedger(uid: string) {
 function normalizeSnapshot(input: unknown) {
   if (!input || typeof input !== "object") throw new HttpsError("invalid-argument", "가계부 데이터 형식이 올바르지 않습니다.");
   const body = input as Record<string, unknown>;
-  const fields = ["transactions", "categoryBudgets", "overallBudget", "categories", "paymentMethods", "ledgerName", "assets"];
+  const fields = ["transactions", "categoryBudgets", "overallBudget", "categories", "paymentMethods", "deletedPaymentMethods", "ledgerName", "assets"];
   const data: Record<string, unknown> = {};
   for (const field of fields) if (field in body) data[field] = body[field];
   if (data.transactions !== undefined) data.transactions = normalizeTransactions(data.transactions);
   if (data.assets !== undefined) data.assets = normalizeAssets(data.assets);
   if (data.categories !== undefined && data.categories !== null) data.categories = normalizeCategories(data.categories);
   if (data.paymentMethods !== undefined && data.paymentMethods !== null) data.paymentMethods = normalizeStringList(data.paymentMethods, 100, 80, "결제수단");
+  if (data.deletedPaymentMethods !== undefined) data.deletedPaymentMethods = normalizeStringList(data.deletedPaymentMethods, 100, 80, "삭제된 결제수단");
   if (data.categoryBudgets !== undefined) data.categoryBudgets = normalizeBudgets(data.categoryBudgets);
   if (data.overallBudget !== undefined && !validMoney(data.overallBudget)) throw new HttpsError("invalid-argument", "예산 금액이 올바르지 않습니다.");
   if (data.ledgerName !== undefined && (typeof data.ledgerName !== "string" || !data.ledgerName.trim() || data.ledgerName.length > 60)) throw new HttpsError("invalid-argument", "가계부 이름은 1~60자로 입력해 주세요.");
@@ -226,7 +227,8 @@ function normalizeCategories(input: unknown) {
       const category = item as Record<string, unknown>;
       const color = typeof category.color === "string" && /^#[0-9a-f]{6}$/i.test(category.color) ? category.color : "#d18a00";
       const icon = typeof category.icon === "string" && /^fa-[a-z0-9-]{1,48}$/i.test(category.icon) ? category.icon : "fa-tag";
-      return { name: boundedText(category.name, 80, "카테고리명", false), icon, color };
+      if (category.isActive !== undefined && typeof category.isActive !== "boolean") throw new HttpsError("invalid-argument", "카테고리 상태가 올바르지 않습니다.");
+      return { name: boundedText(category.name, 80, "카테고리명", false), icon, color, isActive: category.isActive !== false };
     })];
   }));
 }
