@@ -443,11 +443,11 @@
     <div id="transactionModal" class="fixed inset-0 z-50 hidden bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4">
         <div class="bg-white/80 rounded-3xl max-w-md w-full shadow-2xl border border-white p-6 space-y-4">
             <div class="flex justify-between items-center pb-3 border-b border-slate-200"><h3 id="transactionModalTitle" class="font-bold text-slate-800 text-sm"><i class="fa-solid fa-pen-to-square text-rose-500 mr-2"></i>거래 내역 등록/수정</h3><button onclick="closeModal('transactionModal')" class="text-slate-400"><i class="fa-solid fa-xmark text-lg"></i></button></div>
-            <form id="transactionForm" onsubmit="handleTransactionSubmit(event)" class="space-y-3 text-xs">
+            <form id="transactionForm" novalidate onsubmit="handleTransactionSubmit(event)" class="space-y-3 text-xs">
                 <div class="grid grid-cols-2 gap-2"><div><label class="block font-bold mb-1">날짜</label><input type="date" id="tDate" required class="w-full p-2.5 liquid-pill rounded-xl font-bold"></div><div><label class="block font-bold mb-1">구분</label><select id="tType" onchange="updateCategoryDropdown()" class="w-full p-2.5 liquid-pill rounded-xl font-bold"><option value="expense">지출 (변동비)</option><option value="fixed_expense">고정 지출</option><option value="income">수입</option><option value="saving">저축/투자</option></select></div></div>
-                <div><label class="block font-bold mb-1">카테고리</label><select id="tCategory" class="w-full p-2.5 liquid-pill rounded-xl font-bold"></select></div>
+                <div><label class="block font-bold mb-1">카테고리</label><select id="tCategory" required class="w-full p-2.5 liquid-pill rounded-xl font-bold"></select></div>
                 <div><label class="block font-bold mb-1">내역명</label><input type="text" id="tTitle" required placeholder="예: 이마트 장보기" class="w-full p-2.5 liquid-pill rounded-xl font-semibold"></div>
-                <div class="grid grid-cols-2 gap-2"><div><label class="block font-bold mb-1">금액 (원)</label><input type="number" id="tAmount" min="0" step="1" required placeholder="0" class="w-full p-2.5 liquid-pill rounded-xl font-bold"></div><div id="tPaymentContainer"><label class="block font-bold mb-1">결제수단</label><select id="tPayment" class="w-full p-2.5 liquid-pill rounded-xl font-bold"></select></div></div>
+                <div class="grid grid-cols-2 gap-2"><div><label class="block font-bold mb-1">금액 (원)</label><input type="number" id="tAmount" min="0" step="1" required placeholder="0" class="w-full p-2.5 liquid-pill rounded-xl font-bold"></div><div id="tPaymentContainer"><label class="block font-bold mb-1">결제수단</label><select id="tPayment" required class="w-full p-2.5 liquid-pill rounded-xl font-bold"></select></div></div>
                 <div><label class="block font-bold mb-1">메모</label><input type="text" id="tMemo" class="w-full p-2.5 liquid-pill rounded-xl font-semibold"></div>
                 <div class="flex items-center space-x-2 bg-amber-50 p-3 rounded-2xl border border-amber-200"><input type="checkbox" id="tRecurring" class="w-4 h-4 text-rose-500 cursor-pointer"><label for="tRecurring" class="font-bold text-amber-950 cursor-pointer"><i class="fa-solid fa-arrows-rotate text-amber-600 mr-1"></i> 매달 같은 날짜에 자동 반복 등록</label></div>
                 <div class="pt-2 flex justify-end space-x-2"><button type="button" onclick="closeModal('transactionModal')" class="px-4 py-2 rounded-xl bg-slate-200 text-xs font-bold">취소</button><button type="submit" class="px-5 py-2 rounded-xl bg-rose-500 text-white text-xs font-bold shadow-md">저장하기</button></div>
@@ -1000,7 +1000,7 @@
                 openModal('transactionModal');
             } catch (_) {
                 window.editingTransactionId = null;
-                window.showToast('수정 화면을 열지 못했습니다. 결제수단을 확인한 뒤 다시 시도해 주세요.');
+                window.showToast('수정 화면을 열지 못했습니다. 카테고리와 결제수단을 확인한 뒤 다시 시도해 주세요.');
             }
         };
 
@@ -1014,6 +1014,10 @@
         window.updateCategoryDropdown = (selectedValue = '') => {
             const type = document.getElementById('tType')?.value || 'expense';
             const sel = document.getElementById('tCategory'); if (!sel) return; sel.innerHTML = '';
+            const placeholder = new Option('카테고리 선택', '', true, !selectedValue);
+            placeholder.disabled = true;
+            placeholder.hidden = true;
+            sel.appendChild(placeholder);
             const categories = Array.isArray(window.CATEGORIES[type]) ? window.CATEGORIES[type] : [];
             const activeCategories = categories.filter(category => category && category.isActive !== false);
             if (selectedValue && !activeCategories.some(category => category.name === selectedValue)) {
@@ -1031,12 +1035,22 @@
                 allCats.forEach(c => filterCat.appendChild(new Option(c.name, c.name)));
                 if (cur) filterCat.value = cur;
             }
+
+            const payment = document.getElementById('tPayment');
+            const paymentContainer = document.getElementById('tPaymentContainer');
+            const paymentRequired = type !== 'income';
+            if (payment) payment.required = paymentRequired;
+            if (paymentContainer) paymentContainer.classList.toggle('hidden', !paymentRequired);
         };
 
         window.populatePaymentDropdown = (selectedValue = '') => {
             const select = document.getElementById('tPayment');
             if (!select) return;
             select.replaceChildren();
+            const placeholder = new Option('결제수단 선택', '', true, !selectedValue);
+            placeholder.disabled = true;
+            placeholder.hidden = true;
+            select.appendChild(placeholder);
             const methods = Array.isArray(window.paymentMethods) ? window.paymentMethods : [];
             const exists = selectedValue && methods.includes(selectedValue);
             if (selectedValue && !exists) {
@@ -1044,7 +1058,6 @@
                 deletedOption.disabled = true;
                 select.appendChild(deletedOption);
             }
-            if (!selectedValue || !exists) select.appendChild(new Option('결제수단 선택', '', true, !selectedValue));
             methods.forEach(method => select.appendChild(new Option(method, method, false, method === selectedValue)));
             if (selectedValue && !exists) select.value = selectedValue;
         };
@@ -1062,11 +1075,29 @@
         window.handleTransactionSubmit = async (e) => {
             e.preventDefault();
             const typeVal = document.getElementById('tType').value;
+            const selectedCategory = document.getElementById('tCategory').value.trim();
+            const selectedPaymentMethod = document.getElementById('tPayment').value.trim();
+            const existingTransaction = window.editingTransactionId == null
+                ? null
+                : window.transactions.find(transaction => transaction.id === window.editingTransactionId);
+            const activeCategories = (window.CATEGORIES[typeVal] || []).filter(category => category && category.isActive !== false).map(category => category.name);
+            const categoryIsValid = selectedCategory && (activeCategories.includes(selectedCategory)
+                || (existingTransaction?.type === typeVal && existingTransaction.category === selectedCategory));
+            const requiresPayment = typeVal !== 'income';
+            const activePaymentMethods = Array.isArray(window.paymentMethods) ? window.paymentMethods : [];
+            const paymentIsValid = !requiresPayment || (selectedPaymentMethod && (activePaymentMethods.includes(selectedPaymentMethod)
+                || (existingTransaction?.type === typeVal && existingTransaction.paymentMethod === selectedPaymentMethod)));
+            if (!categoryIsValid || !paymentIsValid) {
+                window.showToast('카테고리와 결제수단을 모두 선택해 주세요');
+                document.getElementById(!categoryIsValid ? 'tCategory' : 'tPayment').focus();
+                return;
+            }
+            if (!document.getElementById('transactionForm').reportValidity()) return;
             const dataObj = {
                 date: document.getElementById('tDate').value, type: typeVal,
-                category: document.getElementById('tCategory').value,
+                category: selectedCategory,
                 title: document.getElementById('tTitle').value, amount: parseInt(document.getElementById('tAmount').value, 10) || 0,
-                paymentMethod: typeVal === 'income' ? '-' : document.getElementById('tPayment').value,
+                paymentMethod: typeVal === 'income' ? '-' : selectedPaymentMethod,
                 memo: document.getElementById('tMemo').value, isRecurring: document.getElementById('tRecurring').checked
             };
             const saveButton = document.querySelector('#transactionForm button[type="submit"]');

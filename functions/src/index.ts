@@ -151,6 +151,49 @@ function normalizeSnapshot(input: unknown) {
   return data;
 }
 
+// New or changed transaction references must point to active choices. An unchanged historical
+// reference is grandfathered so editing its amount or memo remains possible after soft deletion.
+function validateTransactionChoices(transactionsInput: unknown, categoriesInput: unknown, paymentMethodsInput: unknown, previousTransactionsInput: unknown) {
+  if (!Array.isArray(transactionsInput)) throw new HttpsError("invalid-argument", "거래 내역 형식이 올바르지 않습니다.");
+  const categoryGroups = categoriesInput && typeof categoriesInput === "object" ? categoriesInput as Record<string, unknown> : {};
+  const methods = new Set(Array.isArray(paymentMethodsInput) ? paymentMethodsInput.filter((value): value is string => typeof value === "string" && !!value.trim()) : []);
+  const previousById = new Map<number, Record<string, unknown>>();
+  if (Array.isArray(previousTransactionsInput)) {
+    for (const item of previousTransactionsInput) {
+      if (!item || typeof item !== "object" || Array.isArray(item)) continue;
+      const previous = item as Record<string, unknown>;
+      if (typeof previous.id === "number" && Number.isSafeInteger(previous.id)) previousById.set(previous.id, previous);
+    }
+  }
+
+  for (const item of transactionsInput) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) continue;
+    const transaction = item as Record<string, unknown>;
+    const type = String(transaction.type || "");
+    const category = typeof transaction.category === "string" ? transaction.category : "";
+    const previous = typeof transaction.id === "number" ? previousById.get(transaction.id) : undefined;
+    const sameHistoricalType = previous?.type === type;
+    const previousCategoryIsUnchanged = sameHistoricalType && previous?.category === category;
+    const categoryList = categoryGroups[type];
+    const activeCategories = new Set(Array.isArray(categoryList) ? categoryList.flatMap(value => {
+      if (!value || typeof value !== "object" || Array.isArray(value)) return [];
+      const entry = value as Record<string, unknown>;
+      return entry.isActive === false || typeof entry.name !== "string" ? [] : [entry.name];
+    }) : []);
+    if (!category.trim() || (!activeCategories.has(category) && !previousCategoryIsUnchanged)) {
+      throw new HttpsError("invalid-argument", "카테고리를 선택해 주세요.");
+    }
+
+    if (type !== "income") {
+      const paymentMethod = typeof transaction.paymentMethod === "string" ? transaction.paymentMethod : "";
+      const previousPaymentIsUnchanged = sameHistoricalType && previous?.paymentMethod === paymentMethod;
+      if (!paymentMethod.trim() || (!methods.has(paymentMethod) && !previousPaymentIsUnchanged)) {
+        throw new HttpsError("invalid-argument", "결제수단을 선택해 주세요.");
+      }
+    }
+  }
+}
+
 // Validate and whitelist all client-controlled ledger fields before Admin SDK writes.
 // This prevents malformed payloads and limits stored XSS/oversized-document abuse.
 function validMoney(value: unknown): value is number {
@@ -460,7 +503,14 @@ export const ledgerApi = onCall({ enforceAppCheck: false, maxInstances: 50, time
       const currentMembers = current.get("memberUids") as string[];
       if (!current.exists || current.get("status") !== "active" || !currentMembers?.includes(uid)) throw new HttpsError("permission-denied", "가계부 접근 권한이 없습니다.");
       if (request.data?.expectedRevision !== current.get("revision")) throw new HttpsError("aborted", "다른 사용자가 먼저 저장했습니다. 최신 내용을 불러왔습니다.");
-      tx.update(ref, { data: { ...(current.get("data") || emptyLedger()), ...data }, profile: { ...(current.get("profile") || {}), ...profile }, revision: FieldValue.increment(1), updatedAt: FieldValue.serverTimestamp(), lastWriterUid: uid });
+      const currentData = current.get("data") || emptyLedger();
+      validateTransactionChoices(
+        data.transactions ?? currentData.transactions,
+        data.categories ?? currentData.categories,
+        data.paymentMethods ?? currentData.paymentMethods,
+        currentData.transactions
+      );
+      tx.update(ref, { data: { ...currentData, ...data }, profile: { ...(current.get("profile") || {}), ...profile }, revision: FieldValue.increment(1), updatedAt: FieldValue.serverTimestamp(), lastWriterUid: uid });
     });
     await ref.collection("auditEvents").add({ actorUid: uid, action: "ledger.write", createdAt: FieldValue.serverTimestamp() });
     return { saved: true };
