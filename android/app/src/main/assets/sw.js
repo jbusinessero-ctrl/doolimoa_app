@@ -1,5 +1,5 @@
 // PWABuilder 서비스 워커 오프라인 지원 스크립트 (안전성 강화 버전)
-const CACHE_NAME = 'doolimoa-v5-security-icon';
+const CACHE_NAME = 'doolimoa-v7-kakao-config';
 const ASSETS = [
     './',
     './index.html',
